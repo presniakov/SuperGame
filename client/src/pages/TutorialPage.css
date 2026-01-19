@@ -1,0 +1,185 @@
+.tutorial-page {
+    min-height: 100vh;
+    width: 100vw;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background-color: transparent;
+    /* Shows body grid/bg */
+    padding: 2rem;
+    box-sizing: border-box;
+}
+
+.tutorial-container {
+    max-width: 800px;
+    width: 100%;
+    background: rgba(15, 23, 42, 0.85);
+    /* Dark semi-transparent */
+    backdrop-filter: blur(12px);
+    border: 1px solid var(--neon-cyan);
+    padding: 3rem;
+    position: relative;
+    clip-path: polygon(30px 0, 100% 0, 100% calc(100% - 30px), calc(100% - 30px) 100%, 0 100%, 0 30px);
+    box-shadow: 0 0 30px rgba(0, 243, 255, 0.15);
+    color: var(--cyber-text);
+}
+
+/* Corner Accents */
+.tutorial-container::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 30px;
+    height: 30px;
+    border-top: 2px solid var(--neon-cyan);
+    border-left: 2px solid var(--neon-cyan);
+}
+
+.tutorial-container::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    right: 0;
+    width: 30px;
+    height: 30px;
+    border-bottom: 2px solid var(--neon-cyan);
+    border-right: 2px solid var(--neon-cyan);
+}
+
+.tutorial-header {
+    text-align: center;
+    margin-bottom: 3rem;
+}
+
+.tutorial-icon {
+    color: var(--neon-cyan);
+    margin-bottom: 1rem;
+    filter: drop-shadow(0 0 8px var(--neon-cyan));
+}
+
+.tutorial-header h1 {
+    font-size: 3rem;
+    margin: 0;
+    color: white;
+    text-shadow: 0 0 10px rgba(255, 255, 255, 0.3);
+}
+
+.subtitle {
+    color: var(--neon-purple);
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 1.2rem;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+}
+
+.instruction-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.instruction-list li {
+    display: flex;
+    gap: 1.5rem;
+    margin-bottom: 1.5rem;
+    align-items: flex-start;
+}
+
+.bullet {
+    background: rgba(0, 243, 255, 0.1);
+    color: var(--neon-cyan);
+    border: 1px solid var(--neon-cyan);
+    padding: 0.2rem 0.5rem;
+    font-family: 'Orbitron', monospace;
+    font-weight: bold;
+    font-size: 0.9rem;
+    min-width: 2.5rem;
+    text-align: center;
+}
+
+.instruction-list p {
+    margin: 0;
+    font-size: 1.1rem;
+    line-height: 1.6;
+    color: #e2e8f0;
+}
+
+.tutorial-footer {
+    margin-top: 3rem;
+    display: flex;
+    justify-content: center;
+}
+
+.back-btn {
+    background: transparent;
+    color: var(--neon-cyan);
+    border: 1px solid var(--neon-cyan);
+    padding: 0.8rem 2rem;
+    font-size: 1rem;
+    font-family: 'Orbitron', monospace;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 0.8rem;
+    transition: all 0.3s;
+    text-transform: uppercase;
+}
+
+.back-btn:hover {
+    background: var(--neon-cyan);
+    color: black;
+    box-shadow: 0 0 20px var(--neon-cyan);
+}
+
+/* Lab Mode Overrides */
+[data-theme='zen'] .tutorial-container {
+    background: #ffffff;
+    border: 1px solid #cbd5e1;
+    box-shadow: 4px 4px 0 rgba(0, 0, 0, 0.1);
+    color: #1e293b;
+    clip-path: none;
+    border-radius: 8px;
+}
+
+[data-theme='zen'] .tutorial-container::before,
+[data-theme='zen'] .tutorial-container::after {
+    display: none;
+}
+
+[data-theme='zen'] .tutorial-header h1 {
+    color: var(--neon-blue);
+    text-shadow: none;
+}
+
+[data-theme='zen'] .subtitle {
+    color: var(--cyber-text);
+}
+
+[data-theme='zen'] .tutorial-icon {
+    color: var(--neon-blue);
+    filter: none;
+}
+
+[data-theme='zen'] .bullet {
+    background: transparent;
+    color: var(--neon-blue);
+    border-color: var(--neon-blue);
+    border-radius: 4px;
+}
+
+[data-theme='zen'] .instruction-list p {
+    color: #334155;
+}
+
+[data-theme='zen'] .back-btn {
+    color: var(--neon-blue);
+    border-color: var(--neon-blue);
+    border-radius: 4px;
+}
+
+[data-theme='zen'] .back-btn:hover {
+    background: rgba(0, 0, 0, 0.05);
+    color: var(--neon-blue);
+    box-shadow: none;
+}

@@ -4,12 +4,13 @@ import GameCanvas from './components/GameCanvas';
 import LandingPage from './pages/LandingPage';
 import PersonalPage from './pages/PersonalPage';
 import ResultsPage from './pages/ResultsPage';
+import TutorialPage from './pages/TutorialPage';
 import type { GameResultData, GameStyle } from './types';
 import './App.css';
 
 function GameContainer() {
   const socket = useSocket();
-  const [view, setView] = useState<'landing' | 'menu' | 'game' | 'result'>('landing');
+  const [view, setView] = useState<'landing' | 'menu' | 'game' | 'result' | 'history' | 'tutorial'>('landing');
   const [resultData, setResultData] = useState<GameResultData | null>(null);
   const [username, setUsername] = useState('');
   const [gameStyle, setGameStyle] = useState<GameStyle>('text-simple');
@@ -48,6 +49,26 @@ function GameContainer() {
     // Wait for 'game_ready' to switch view
   };
 
+  const handleViewHistory = () => {
+    // In a real app, fetch history. For now, use mock or last result.
+    if (!resultData) {
+      // Mock data if no recent game
+      setResultData({
+        score: 15600,
+        history: [
+          { timeOffset: 1000, speed: 20, result: 'hit', letter: 'A' },
+          { timeOffset: 2000, speed: 22, result: 'hit', letter: 'S' },
+          { timeOffset: 3000, speed: 25, result: 'miss', letter: 'A' },
+          { timeOffset: 4500, speed: 22, result: 'hit', letter: 'S' },
+          { timeOffset: 6000, speed: 24, result: 'hit', letter: 'A' },
+          { timeOffset: 7500, speed: 28, result: 'hit', letter: 'S' },
+          { timeOffset: 9000, speed: 32, result: 'hit', letter: 'A' }
+        ]
+      });
+    }
+    setView('history');
+  };
+
   const restart = () => {
     setView('menu');
   };
@@ -56,15 +77,26 @@ function GameContainer() {
     return <LandingPage onLogin={handleLoginSuccess} />;
   }
 
+  if (view === 'tutorial') {
+    return <TutorialPage onBack={() => setView('menu')} />;
+  }
+
   if (view === 'menu') {
-    return <PersonalPage username={username} onStartGame={handleStartGame} />;
+    return (
+      <PersonalPage
+        username={username}
+        onStartGame={handleStartGame}
+        onViewHistory={handleViewHistory}
+        onViewTutorial={() => setView('tutorial')}
+      />
+    );
   }
 
   if (view === 'game') {
     return <GameCanvas socket={socket} onAbort={() => setView('menu')} style={gameStyle} />;
   }
 
-  if (view === 'result' && resultData) {
+  if ((view === 'result' || view === 'history') && resultData) {
     return <ResultsPage data={resultData} onRestart={restart} />;
   }
 
