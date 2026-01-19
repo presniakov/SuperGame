@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Socket } from 'socket.io-client';
+import { useTheme } from '../context/ThemeContext';
 import type { SpawnEvent, SpriteData, GameStyle } from '../types';
 
 interface RenderSprite extends SpriteData {
@@ -215,19 +216,23 @@ export default function GameCanvas({ socket, onAbort, style = 'text-simple' }: {
         return () => cancelAnimationFrame(requestRef.current!);
     }, [socket, dimensions, style]); // Add dimensions dependency to redraw if resized
 
+    const { theme } = useTheme();
+
     return (
         <div style={{
             position: 'relative',
             width: dimensions.width,
             height: dimensions.height,
             margin: '0 auto',
-            background: style === 'text-neon' ? '#111' : '#f0f0f0',
+            // In Zen/Lab mode, use transparent to show grid. In Cyber, stick to dark unless style override.
+            background: style === 'text-neon' ? '#111' : (theme === 'zen' ? 'transparent' : 'rgba(3, 7, 18, 0.5)'),
             overflow: 'hidden'
         }}>
             {countdown !== null && (
                 <div style={{
                     position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)',
-                    fontSize: '100px', fontWeight: 'bold', color: style === 'text-neon' ? '#fff' : 'red',
+                    fontSize: '100px', fontWeight: 'bold',
+                    color: style === 'text-neon' ? '#fff' : (theme === 'zen' ? 'var(--neon-pink)' : 'red'),
                     textShadow: style === 'text-neon' ? '0 0 20px red' : 'none'
                 }}>
                     {countdown}

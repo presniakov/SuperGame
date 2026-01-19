@@ -148,3 +148,56 @@
     border-color: #334155;
     color: #475569;
 }
+
+/* Lab Mode Overrides */
+[data-theme='zen'] .personal-card {
+    background: #ffffff;
+    border: 1px solid #cbd5e1;
+    box-shadow: 4px 4px 0 rgba(0, 0, 0, 0.1);
+    clip-path: none;
+    border-radius: 4px;
+}
+
+[data-theme='zen'] .personal-card::before,
+[data-theme='zen'] .personal-card::after {
+    display: none;
+    /* Remove neon corners */
+}
+
+[data-theme='zen'] .personal-card h1 {
+    color: var(--neon-blue);
+    text-shadow: none;
+    -webkit-text-fill-color: var(--neon-blue);
+}
+
+[data-theme='zen'] .game-setup input,
+[data-theme='zen'] .game-setup select {
+    background-color: #f1f5f9;
+    color: var(--cyber-text);
+    border: 1px solid #cbd5e1;
+    border-bottom: 2px solid var(--neon-cyan);
+    font-family: var(--font-display);
+    text-shadow: none;
+}
+
+[data-theme='zen'] .game-setup input:focus,
+[data-theme='zen'] .game-setup select:focus {
+    background-color: white;
+    box-shadow: 2px 2px 0 var(--neon-cyan);
+}
+
+[data-theme='zen'] .start-btn {
+    background: transparent;
+    color: var(--neon-blue);
+    border: 2px solid var(--neon-blue);
+    clip-path: none;
+    box-shadow: none;
+    font-family: var(--font-display);
+}
+
+[data-theme='zen'] .start-btn:hover:not(:disabled) {
+    background-color: transparent;
+    color: var(--neon-blue);
+    box-shadow: 4px 4px 0 var(--neon-blue);
+    transform: translate(-2px, -2px);
+}

@@ -71,10 +71,14 @@ function GameContainer() {
   return <div>Loading...</div>;
 }
 
+import { ThemeProvider } from './context/ThemeContext';
+
 export default function App() {
   return (
-    <SocketProvider>
-      <GameContainer />
-    </SocketProvider>
+    <ThemeProvider>
+      <SocketProvider>
+        <GameContainer />
+      </SocketProvider>
+    </ThemeProvider>
   );
 }
