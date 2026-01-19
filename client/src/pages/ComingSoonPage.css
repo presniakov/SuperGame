@@ -1,0 +1,134 @@
+.coming-soon-container {
+    width: 100vw;
+    height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background-color: var(--bg-dark);
+    color: var(--text-primary);
+    overflow: hidden;
+    position: relative;
+}
+
+/* Optional background grid effect similar to Landing Page */
+.coming-soon-container::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image:
+        linear-gradient(var(--border-dim) 1px, transparent 1px),
+        linear-gradient(90deg, var(--border-dim) 1px, transparent 1px);
+    background-size: 40px 40px;
+    opacity: 0.1;
+    z-index: 0;
+}
+
+.coming-soon-content {
+    z-index: 10;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1.5rem;
+    padding: 2rem;
+    max-width: 500px;
+}
+
+.icon-pulse {
+    width: 100px;
+    height: 100px;
+    border-radius: 50%;
+    background: rgba(0, 243, 255, 0.1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 0 20px rgba(0, 243, 255, 0.2);
+    margin-bottom: 1rem;
+    animation: pulse 2s infinite ease-in-out;
+}
+
+.rocket-icon {
+    color: var(--neon-cyan);
+    transform: rotate(-45deg);
+}
+
+h1.glitch-text {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 3.5rem;
+    margin: 0;
+    background: linear-gradient(135deg, #fff 0%, var(--neon-cyan) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    letter-spacing: 4px;
+    font-weight: 700;
+}
+
+.coming-soon-content p {
+    font-size: 1.1rem;
+    color: var(--text-secondary);
+    margin-bottom: 1rem;
+}
+
+.progress-bar-container {
+    width: 100%;
+    height: 4px;
+    background: var(--bg-card);
+    border-radius: 2px;
+    overflow: hidden;
+    position: relative;
+    max-width: 300px;
+}
+
+.progress-bar {
+    width: 60%;
+    height: 100%;
+    background: var(--neon-cyan);
+    box-shadow: 0 0 10px var(--neon-cyan);
+    animation: loading 3s infinite ease-in-out;
+}
+
+.version-tag {
+    font-family: 'Orbitron', monospace;
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    margin-top: 1rem;
+    opacity: 0.6;
+}
+
+@keyframes pulse {
+    0% {
+        transform: scale(1);
+        box-shadow: 0 0 0 0 rgba(0, 243, 255, 0.4);
+    }
+
+    70% {
+        transform: scale(1.1);
+        box-shadow: 0 0 0 15px rgba(0, 243, 255, 0);
+    }
+
+    100% {
+        transform: scale(1);
+        box-shadow: 0 0 0 0 rgba(0, 243, 255, 0);
+    }
+}
+
+@keyframes loading {
+    0% {
+        transform: translateX(-100%);
+    }
+
+    50% {
+        transform: translateX(0%);
+    }
+
+    100% {
+        transform: translateX(100%);
+    }
+}
+
+/* Media Query for Mobile */
+@media (max-width: 600px) {
+    h1.glitch-text {
+        font-size: 2.5rem;
+    }
+}

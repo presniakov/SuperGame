@@ -5,12 +5,19 @@ import LandingPage from './pages/LandingPage';
 import PersonalPage from './pages/PersonalPage';
 import ResultsPage from './pages/ResultsPage';
 import TutorialPage from './pages/TutorialPage';
+import ComingSoonPage from './pages/ComingSoonPage';
 import type { GameResultData, GameStyle } from './types';
 import './App.css';
 
 function GameContainer() {
   const socket = useSocket();
-  const [view, setView] = useState<'landing' | 'menu' | 'game' | 'result' | 'history' | 'tutorial'>('landing');
+  // Check URL params for dev access
+  const params = new URLSearchParams(window.location.search);
+  const isDevAccess = params.get('dev') === 'supergame_dev';
+
+  const [view, setView] = useState<'landing' | 'menu' | 'game' | 'result' | 'history' | 'tutorial' | 'coming-soon'>(
+    isDevAccess ? 'landing' : 'coming-soon'
+  );
   const [resultData, setResultData] = useState<GameResultData | null>(null);
   const [username, setUsername] = useState('');
   const [gameStyle, setGameStyle] = useState<GameStyle>('text-simple');
@@ -72,6 +79,10 @@ function GameContainer() {
   const restart = () => {
     setView('menu');
   };
+
+  if (view === 'coming-soon') {
+    return <ComingSoonPage />;
+  }
 
   if (view === 'landing') {
     return <LandingPage onLogin={handleLoginSuccess} />;
