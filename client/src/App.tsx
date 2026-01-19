@@ -20,7 +20,16 @@ function GameContainer() {
   );
   const [resultData, setResultData] = useState<GameResultData | null>(null);
   const [username, setUsername] = useState('');
-  const [gameStyle, setGameStyle] = useState<GameStyle>('text-simple');
+  const [gameStyle, setGameStyle] = useState<GameStyle>(() => {
+    const saved = localStorage.getItem('site-theme');
+    return (saved === 'lab' || saved === 'steam') ? (saved as GameStyle) : 'cyber';
+  });
+
+  // Apply visual theme globally when gameStyle changes
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', gameStyle);
+    localStorage.setItem('site-theme', gameStyle);
+  }, [gameStyle]);
 
   useEffect(() => {
     if (!socket) return;
@@ -50,8 +59,8 @@ function GameContainer() {
     setView('menu');
   };
 
-  const handleStartGame = (letters: string[], style: GameStyle) => {
-    setGameStyle(style);
+  const handleStartGame = (letters: string[]) => {
+    // Style is already set in state
     socket?.emit('join_game', { letters, userId: username });
     // Wait for 'game_ready' to switch view
   };
@@ -96,6 +105,8 @@ function GameContainer() {
     return (
       <PersonalPage
         username={username}
+        gameStyle={gameStyle}
+        onStyleChange={setGameStyle}
         onStartGame={handleStartGame}
         onViewHistory={handleViewHistory}
         onViewTutorial={() => setView('tutorial')}
@@ -114,14 +125,10 @@ function GameContainer() {
   return <div>Loading...</div>;
 }
 
-import { ThemeProvider } from './context/ThemeContext';
-
 export default function App() {
   return (
-    <ThemeProvider>
-      <SocketProvider>
-        <GameContainer />
-      </SocketProvider>
-    </ThemeProvider>
+    <SocketProvider>
+      <GameContainer />
+    </SocketProvider>
   );
 }

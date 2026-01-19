@@ -3,13 +3,33 @@
 }
 
 .landing-container {
+  /* Enforce Cyber Theme Variables Locally */
+  --cyber-bg: #030712;
+  --cyber-panel: #0f172a;
+  --neon-cyan: #06b6d4;
+  --neon-blue: #00f3ff;
+  --neon-pink: #d946ef;
+  --neon-purple: #8b5cf6;
+  --cyber-text: #e2e8f0;
+  --cyber-dim: #64748b;
+
+  --font-main: 'Rajdhani', system-ui, sans-serif;
+  --font-display: 'Orbitron', system-ui, sans-serif;
+
   min-height: 100vh;
   width: 100vw;
-  background-color: transparent;
-  /* Let body grid show through */
+
+  /* Enforce Cyber Background explicitly, ignoring global body */
+  background-color: var(--cyber-bg);
+  background-image:
+    linear-gradient(rgba(0, 243, 255, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 243, 255, 0.03) 1px, transparent 1px);
+  background-size: 50px 50px;
+  background-position: center top;
+
   color: var(--cyber-text);
+  font-family: var(--font-main);
   overflow-x: hidden;
-  /* Kept for horizontal safety, but avoid overflow-y on container */
 }
 
 .landing-header {
@@ -30,6 +50,10 @@
   height: 60px;
   /* Explicit constrained height */
 }
+
+/* ... existing styles ... */
+/* (I will count on the fact that I am replacing the container and removing the end blocks. 
+   The intermediate blocks are fine, they use vars.) */
 
 .logo {
   font-size: 1.4rem;
@@ -213,69 +237,4 @@ main {
 }
 
 /* Lab Mode Specific Overrides */
-[data-theme='zen'] .landing-header {
-  background: rgba(255, 255, 255, 0.9);
-  border-bottom: 2px solid var(--neon-cyan);
-  backdrop-filter: blur(8px);
-}
-
-[data-theme='zen'] .logo {
-  background: none;
-  -webkit-text-fill-color: var(--neon-blue);
-  text-shadow: none;
-  letter-spacing: 0px;
-  /* Monospace spacing is wide enough */
-}
-
-[data-theme='zen'] .hero-section h1 {
-  color: var(--cyber-text);
-  text-shadow: none;
-  -webkit-text-fill-color: var(--cyber-text);
-}
-
-[data-theme='zen'] .hero-section::after {
-  /* Replace glow with a technical grid circle or remove */
-  background: radial-gradient(circle, rgba(2, 132, 199, 0.1) 0%, transparent 70%);
-  border: 1px dashed var(--neon-cyan);
-  border-radius: 50%;
-}
-
-[data-theme='zen'] .feature-card {
-  background: #ffffff;
-  border: 1px solid #cbd5e1;
-  border-left: 4px solid var(--neon-blue);
-  box-shadow: 4px 4px 0px rgba(0, 0, 0, 0.1);
-  /* Engineering shadow */
-  border-radius: 4px;
-  /* Slightly softer corners for lab */
-  clip-path: none;
-  /* Remove aggressive cyber clips */
-}
-
-[data-theme='zen'] .feature-card h3 {
-  color: var(--neon-blue);
-}
-
-[data-theme='zen'] .feature-card:hover {
-  transform: translateY(-5px);
-  box-shadow: 6px 6px 0px rgba(0, 0, 0, 0.15);
-}
-
-[data-theme='zen'] .feature-icon {
-  filter: none;
-  /* No neon glow */
-  color: var(--neon-blue);
-}
-
-[data-theme='zen'] .login-btn {
-  border-width: 2px;
-  box-shadow: none;
-  font-weight: 700;
-}
-
-[data-theme='zen'] .login-btn:hover {
-  box-shadow: 4px 4px 0px var(--neon-cyan);
-  transform: translate(-2px, -2px);
-  background: transparent;
-  color: var(--neon-blue);
-}
+/* Lab Mode Overrides Removed - Landing Page is Fixed Cyber Style */

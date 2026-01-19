@@ -133,7 +133,7 @@
 }
 
 /* Lab Mode Overrides */
-[data-theme='zen'] .tutorial-container {
+[data-theme='lab'] .tutorial-container {
     background: #ffffff;
     border: 1px solid #cbd5e1;
     box-shadow: 4px 4px 0 rgba(0, 0, 0, 0.1);
@@ -142,43 +142,43 @@
     border-radius: 8px;
 }
 
-[data-theme='zen'] .tutorial-container::before,
-[data-theme='zen'] .tutorial-container::after {
+[data-theme='lab'] .tutorial-container::before,
+[data-theme='lab'] .tutorial-container::after {
     display: none;
 }
 
-[data-theme='zen'] .tutorial-header h1 {
+[data-theme='lab'] .tutorial-header h1 {
     color: var(--neon-blue);
     text-shadow: none;
 }
 
-[data-theme='zen'] .subtitle {
+[data-theme='lab'] .subtitle {
     color: var(--cyber-text);
 }
 
-[data-theme='zen'] .tutorial-icon {
+[data-theme='lab'] .tutorial-icon {
     color: var(--neon-blue);
     filter: none;
 }
 
-[data-theme='zen'] .bullet {
+[data-theme='lab'] .bullet {
     background: transparent;
     color: var(--neon-blue);
     border-color: var(--neon-blue);
     border-radius: 4px;
 }
 
-[data-theme='zen'] .instruction-list p {
+[data-theme='lab'] .instruction-list p {
     color: #334155;
 }
 
-[data-theme='zen'] .back-btn {
+[data-theme='lab'] .back-btn {
     color: var(--neon-blue);
     border-color: var(--neon-blue);
     border-radius: 4px;
 }
 
-[data-theme='zen'] .back-btn:hover {
+[data-theme='lab'] .back-btn:hover {
     background: rgba(0, 0, 0, 0.05);
     color: var(--neon-blue);
     box-shadow: none;

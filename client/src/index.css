@@ -18,30 +18,54 @@
   color-scheme: dark;
 }
 
-/* Zen / Light Theme */
-/* Zen / Lab Theme */
-[data-theme='zen'] {
+/* Lab / Light Theme */
+[data-theme='lab'] {
   --cyber-bg: #f8fafc;
-  /* Slate 50 - Clinical White */
   --cyber-panel: #ffffff;
   --neon-cyan: #0284c7;
-  /* Sky 600 - Measured Blue */
+  /* Sky 600 */
   --neon-blue: #0369a1;
   /* Sky 700 */
   --neon-pink: #db2777;
-  /* Pink 600 - Alert */
+  /* Pink 600 */
   --neon-purple: #7c3aed;
   /* Violet 600 */
   --cyber-text: #334155;
-  /* Slate 700 - High Contrast Text */
+  /* Slate 700 */
   --cyber-dim: #64748b;
   /* Slate 500 */
-
   --font-main: 'Roboto Mono', 'Courier Prime', monospace;
-  /* Scientific Monospace */
   --font-display: 'Roboto Mono', monospace;
-
   color-scheme: light;
+}
+
+/* Steam / Industrial Theme */
+[data-theme='steam'] {
+  --cyber-bg: #1c1917;
+  /* Stone 900 */
+  --cyber-panel: #292524;
+  /* Stone 800 - Warm dark grey */
+
+  --neon-cyan: #d97706;
+  /* Amber 600 - Bronze/Gold */
+  --neon-blue: #a8a29e;
+  /* Stone 400 - Steel/Silver */
+  --neon-pink: #ef4444;
+  /* Red 500 - Rust Red */
+  --neon-purple: #854d0e;
+  /* Yellow 800 - Old Brass */
+
+  --cyber-text: #e7e5e4;
+  /* Stone 200 */
+  --cyber-dim: #a8a29e;
+  /* Stone 400 */
+
+  --font-main: 'Courier Prime', 'Courier New', monospace;
+  /* Typewriter feel */
+  --font-display: 'Courier Prime', serif;
+  /* Stamped metal text */
+
+  color-scheme: dark;
 }
 
 body {
@@ -50,17 +74,11 @@ body {
   place-items: center;
   min-width: 320px;
   min-height: 100vh;
-
   background-color: var(--cyber-bg);
-  /* Use different backgrounds based on theme via CSS vars if detailed enough, 
-     or just let standard vars handle colors. 
-     We can override specific complicated props using the data attribute selector on body if needed. 
-  */
   color: var(--cyber-text);
   font-family: var(--font-main);
   line-height: 1.5;
   font-weight: 500;
-
   transition: background-color 0.3s ease, color 0.3s ease;
 }
 
@@ -72,11 +90,21 @@ body {
   background-position: center top;
 }
 
-[data-theme='zen'] body {
+[data-theme='lab'] body {
   background-image:
     linear-gradient(#e2e8f0 1px, transparent 1px),
     linear-gradient(90deg, #e2e8f0 1px, transparent 1px);
   background-size: 20px 20px;
+}
+
+[data-theme='steam'] body {
+  background-image: url('/assets/steam_bg.jpg');
+  background-size: cover;
+  /* Or tile it if it's a seamless texture */
+  background-repeat: repeat;
+  background-position: center;
+  background-attachment: fixed;
+  /* Parallax feel */
 }
 
 h1,

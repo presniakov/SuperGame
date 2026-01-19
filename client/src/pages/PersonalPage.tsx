@@ -5,19 +5,32 @@ import './PersonalPage.css';
 
 interface PersonalPageProps {
     username: string;
-    onStartGame: (letters: string[], style: GameStyle) => void;
+    gameStyle: GameStyle;
+    onStyleChange: (style: GameStyle) => void;
+    onStartGame: (letters: string[]) => void;
     onViewHistory?: () => void;
     onViewTutorial?: () => void;
 }
 
-export default function PersonalPage({ username, onStartGame: _onStartGame, onViewHistory, onViewTutorial }: PersonalPageProps) {
+export default function PersonalPage({
+    username,
+    gameStyle,
+    onStyleChange,
+    onStartGame: _onStartGame,
+    onViewHistory,
+    onViewTutorial
+}: PersonalPageProps) {
     const [letters, setLetters] = useState(['A', 'L']);
-    const [selectedStyle, setSelectedStyle] = useState<GameStyle>('text-simple');
 
     const handleLetterChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         // Enforce exactly 2 letters, uppercase only, alpha only
         const val = e.target.value.toUpperCase().replace(/[^A-Z]/g, '').slice(0, 2);
         setLetters(val.split(''));
+    };
+
+    const handleStyleClick = (style: GameStyle) => {
+        console.log('Style clicked:', style);
+        onStyleChange(style);
     };
 
     return (
@@ -64,25 +77,28 @@ export default function PersonalPage({ username, onStartGame: _onStartGame, onVi
                             <label>Visual Style</label>
                             <div className="style-grid">
                                 <button
-                                    className={`style-option ${selectedStyle === 'text-simple' ? 'active' : ''}`}
-                                    onClick={() => setSelectedStyle('text-simple')}
-                                >
-                                    <span className="style-preview simple">Aa</span>
-                                    <span>Simple</span>
-                                </button>
-                                <button
-                                    className={`style-option ${selectedStyle === 'text-neon' ? 'active' : ''}`}
-                                    onClick={() => setSelectedStyle('text-neon')}
+                                    className={`style-option ${gameStyle === 'cyber' ? 'active' : ''}`}
+                                    onClick={() => handleStyleClick('cyber')}
+                                    type="button"
                                 >
                                     <span className="style-preview neon">Aa</span>
-                                    <span>Neon</span>
+                                    <span>Cyber</span>
                                 </button>
                                 <button
-                                    className={`style-option ${selectedStyle === 'sprite-pixel' ? 'active' : ''}`}
-                                    onClick={() => setSelectedStyle('sprite-pixel')}
+                                    className={`style-option ${gameStyle === 'lab' ? 'active' : ''}`}
+                                    onClick={() => handleStyleClick('lab')}
+                                    type="button"
                                 >
-                                    <span className="style-preview pixel">👾</span>
-                                    <span>Pixel</span>
+                                    <span className="style-preview simple">Aa</span>
+                                    <span>Lab</span>
+                                </button>
+                                <button
+                                    className={`style-option ${gameStyle === 'steam' ? 'active' : ''}`}
+                                    onClick={() => handleStyleClick('steam')}
+                                    type="button"
+                                >
+                                    <span className="style-preview pixel">⚙️</span>
+                                    <span>Steam</span>
                                 </button>
                             </div>
                         </div>
@@ -90,7 +106,7 @@ export default function PersonalPage({ username, onStartGame: _onStartGame, onVi
                         <button
                             className="start-btn pulse-glow"
                             disabled={letters.length !== 2}
-                            onClick={() => { /* onStartGame(letters, selectedStyle) - Disabled temporarily */ }}
+                            onClick={() => { /* onStartGame(letters) */ }}
                         >
                             <Play size={24} fill="currentColor" /> START SESSION
                         </button>

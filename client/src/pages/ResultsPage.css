@@ -98,7 +98,7 @@
 }
 
 /* Lab Mode Overrides */
-[data-theme='zen'] .chart-container {
+[data-theme='lab'] .chart-container {
     background: #ffffff;
     border: 1px solid #cbd5e1;
     box-shadow: 4px 4px 0 rgba(0, 0, 0, 0.1);
@@ -106,14 +106,14 @@
     border-radius: 4px;
 }
 
-[data-theme='zen'] .secondary-btn {
+[data-theme='lab'] .secondary-btn {
     color: var(--neon-blue);
     border-color: var(--neon-blue);
     clip-path: none;
     border-radius: 4px;
 }
 
-[data-theme='zen'] .secondary-btn:hover {
+[data-theme='lab'] .secondary-btn:hover {
     background: rgba(0, 0, 0, 0.05);
     box-shadow: none;
     transform: translateY(-1px);

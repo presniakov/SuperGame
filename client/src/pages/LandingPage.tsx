@@ -1,7 +1,6 @@
 import { useState } from 'react';
-import { Brain, Target, Cpu, Sun, Moon } from 'lucide-react';
+import { Brain, Target, Cpu } from 'lucide-react';
 import LoginModal from '../components/LoginModal';
-import { useTheme } from '../context/ThemeContext';
 import './LandingPage.css';
 
 interface LandingPageProps {
@@ -10,7 +9,6 @@ interface LandingPageProps {
 
 export default function LandingPage({ onLogin }: LandingPageProps) {
     const [isModalOpen, setModalOpen] = useState(false);
-    const { theme, toggleTheme } = useTheme();
 
     return (
         <div className="landing-container">
@@ -20,26 +18,6 @@ export default function LandingPage({ onLogin }: LandingPageProps) {
                 <div className="logo">SuperGame</div>
 
                 <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
-                    <button
-                        onClick={toggleTheme}
-                        className="theme-toggle-btn"
-                        style={{
-                            background: 'transparent',
-                            border: 'none',
-                            color: 'var(--neon-blue)',
-                            cursor: 'pointer',
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '0.5rem',
-                            padding: '0.4rem',
-                            clipPath: 'none' // Override global clip-path if needed or keep it
-                        }}
-                    >
-                        {theme === 'cyber' ? <Sun size={20} /> : <Moon size={20} />}
-                        <span style={{ fontSize: '0.8rem', fontFamily: 'var(--font-display)' }}>
-                            {theme === 'cyber' ? 'LAB MODE' : 'CYBER MODE'}
-                        </span>
-                    </button>
                     <button className="login-btn" onClick={() => setModalOpen(true)}>Login</button>
                 </div>
             </header>

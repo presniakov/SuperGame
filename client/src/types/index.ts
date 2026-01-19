@@ -21,7 +21,7 @@ export interface GameHistoryEvent {
     timeOffset: number;
 }
 
-export type GameStyle = 'text-simple' | 'text-neon' | 'sprite-pixel';
+export type GameStyle = 'cyber' | 'lab' | 'steam';
 
 export interface GameResultData {
     score: number;

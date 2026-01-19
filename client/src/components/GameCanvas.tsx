@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
 import { Socket } from 'socket.io-client';
-import { useTheme } from '../context/ThemeContext';
 import type { SpawnEvent, SpriteData, GameStyle } from '../types';
 
 interface RenderSprite extends SpriteData {
@@ -9,12 +8,12 @@ interface RenderSprite extends SpriteData {
 
 const LETTER_COLORS = ['#ff0000', '#00ff00', '#0000ff', '#ffff00', '#ff00ff', '#00ffff'];
 
-export default function GameCanvas({ socket, onAbort, style = 'text-simple' }: { socket: Socket | null, onAbort: () => void, style?: GameStyle }) {
+export default function GameCanvas({ socket, onAbort, style = 'cyber' }: { socket: Socket | null, onAbort: () => void, style?: GameStyle }) {
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const [countdown, setCountdown] = useState<number | null>(null);
     const spritesRef = useRef<RenderSprite[]>([]);
     const requestRef = useRef<number>(0);
-    const imagesRef = useRef<Record<string, HTMLImageElement>>({});
+
 
     const [dimensions, setDimensions] = useState({ width: 800, height: 600 });
 
@@ -40,20 +39,7 @@ export default function GameCanvas({ socket, onAbort, style = 'text-simple' }: {
         return () => window.removeEventListener('resize', handleResize);
     }, []);
 
-    // Sprite Loading Effect
-    useEffect(() => {
-        if (style === 'sprite-pixel') {
-            // Preload characters A-Z
-            const letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split('');
-            letters.forEach(char => {
-                const img = new Image();
-                img.src = `/assets/sprites/${char}.png`;
-                img.onload = () => {
-                    imagesRef.current[char] = img;
-                };
-            });
-        }
-    }, [style]);
+
 
     useEffect(() => {
         if (!socket) return;
@@ -178,26 +164,21 @@ export default function GameCanvas({ socket, onAbort, style = 'text-simple' }: {
 
                 // RENDERING LOGIC
                 ctx.save();
-                if (style === 'sprite-pixel') {
-                    const img = imagesRef.current[sprite.letter];
-                    if (img) {
-                        // Draw Image
-                        const size = 64; // Fixed sprite size for now
-                        ctx.drawImage(img, px, py, size, size);
-                    } else {
-                        // Fallback Text if image missing
-                        ctx.font = "bold 40px 'Courier New', monospace";
-                        ctx.fillStyle = "#333";
-                        ctx.fillText(sprite.letter, px, py + 30);
-                    }
-                } else if (style === 'text-neon') {
+                if (style === 'steam') {
+                    // Steam Logic: Typewriter font, Bronze color, Heavy shadow
+                    ctx.font = "bold 50px 'Courier New', monospace";
+                    ctx.fillStyle = "#d97706"; // Bronze/Amber
+                    ctx.shadowColor = "#000";
+                    ctx.shadowBlur = 4;
+                    ctx.fillText(sprite.letter, px, py + 30);
+                } else if (style === 'cyber') {
                     ctx.font = "bold 60px 'Segoe UI', sans-serif";
                     ctx.fillStyle = "#fff";
                     ctx.shadowColor = LETTER_COLORS[sprite.letter.charCodeAt(0) % LETTER_COLORS.length];
                     ctx.shadowBlur = 20;
                     ctx.fillText(sprite.letter, px, py + 30);
                 } else {
-                    // Simple Text
+                    // Lab / Simple Text
                     ctx.font = "bold 40px Arial";
                     ctx.fillStyle = "#333";
                     ctx.fillText(sprite.letter, px, py + 30);
@@ -216,7 +197,7 @@ export default function GameCanvas({ socket, onAbort, style = 'text-simple' }: {
         return () => cancelAnimationFrame(requestRef.current!);
     }, [socket, dimensions, style]); // Add dimensions dependency to redraw if resized
 
-    const { theme } = useTheme();
+    // const { theme } = useTheme(); // Removed
 
     return (
         <div style={{
@@ -224,16 +205,17 @@ export default function GameCanvas({ socket, onAbort, style = 'text-simple' }: {
             width: dimensions.width,
             height: dimensions.height,
             margin: '0 auto',
-            // In Zen/Lab mode, use transparent to show grid. In Cyber, stick to dark unless style override.
-            background: style === 'text-neon' ? '#111' : (theme === 'zen' ? 'transparent' : 'rgba(3, 7, 18, 0.5)'),
+            // Cyber uses dark bg, Lab uses transparent (showing global body bg)
+            // Steam uses semi-transparent dark to let rivets show through but keep contrast
+            background: style === 'cyber' ? '#111' : (style === 'steam' ? 'rgba(0,0,0,0.3)' : 'transparent'),
             overflow: 'hidden'
         }}>
             {countdown !== null && (
                 <div style={{
                     position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)',
                     fontSize: '100px', fontWeight: 'bold',
-                    color: style === 'text-neon' ? '#fff' : (theme === 'zen' ? 'var(--neon-pink)' : 'red'),
-                    textShadow: style === 'text-neon' ? '0 0 20px red' : 'none'
+                    color: style === 'cyber' ? '#fff' : 'var(--neon-pink)',
+                    textShadow: style === 'cyber' ? '0 0 20px red' : 'none'
                 }}>
                     {countdown}
                 </div>
