@@ -9,7 +9,9 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     const [socket, setSocket] = useState<Socket | null>(null);
 
     useEffect(() => {
-        const newSocket = io('http://localhost:4000');
+        // In production, use relative URL (proxied by Nginx). In dev, use localhost:4000
+        const socketUrl = import.meta.env.PROD ? '/' : 'http://localhost:4000';
+        const newSocket = io(socketUrl);
         setSocket(newSocket);
 
         return () => {

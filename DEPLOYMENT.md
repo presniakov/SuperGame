@@ -88,7 +88,7 @@ server {
 
     # Proxy Socket.io / API requests to Backend
     location /socket.io {
-        proxy_pass http://localhost:5000; # Assuming your server runs on port 5000
+        proxy_pass http://localhost:4000; # Server runs on port 4000
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection "upgrade";
@@ -129,7 +129,7 @@ Don't forget to create your `.env` file for the backend!
 cd /var/www/supergame/server
 nano .env
 ```
-Paste your environment variables (PORT=5000, etc.) and save. Restart the backend:
+Paste your environment variables (PORT=4000, etc.) and save. Restart the backend:
 ```bash
 pm2 restart supergame-backend
 ```
