@@ -64,7 +64,7 @@
 
   --cyber-text: #e7e5e4;
   /* Stone 200 */
-  --cyber-dim: #a8a29e;
+  --cyber-dim: #ffffff;
   /* Stone 400 */
 
   --font-main: 'Courier Prime', 'Courier New', monospace;
@@ -105,13 +105,10 @@ body {
 }
 
 [data-theme='steam'] body {
-  background-image: url('/assets/steam_bg.jpg');
-  background-size: cover;
-  /* Or tile it if it's a seamless texture */
+  background-image: url('/assets/Bg-1_1920x1920.jpg');
   background-repeat: repeat;
-  background-position: center;
+  background-position: top left;
   background-attachment: fixed;
-  /* Parallax feel */
 }
 
 h1,
