@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Brain, Target, Cpu } from 'lucide-react';
 import LoginModal from '../components/LoginModal';
 import './LandingPage.css';
 
@@ -39,16 +40,19 @@ export default function LandingPage({ onLogin }: LandingPageProps) {
 
                     <div className="features-grid">
                         <div className="feature-card">
+                            <Brain className="feature-icon" size={48} />
                             <h3>Memory Enhancement</h3>
                             <p>Strengthen your working memory and recall abilities through adaptive exercises designed by neuroscientists.</p>
                         </div>
 
                         <div className="feature-card">
+                            <Target className="feature-icon" size={48} />
                             <h3>Focus Training</h3>
                             <p>Improve attention span and concentration with targeted exercises that challenge your focus mechanisms.</p>
                         </div>
 
                         <div className="feature-card">
+                            <Cpu className="feature-icon" size={48} />
                             <h3>Problem Solving</h3>
                             <p>Enhance logical thinking and analytical skills through progressively challenging puzzle-based games.</p>
                         </div>

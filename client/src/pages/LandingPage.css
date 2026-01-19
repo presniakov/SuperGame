@@ -77,7 +77,7 @@ main {
 
 .hero-section {
   text-align: center;
-  margin-bottom: 2rem;
+  margin-bottom: 0.5rem;
   animation: fadeIn 0.8s ease-out;
   position: relative;
 }
@@ -181,6 +181,18 @@ main {
   font-size: 1.8rem;
   margin-bottom: 1rem;
   color: white;
+}
+
+.feature-icon {
+  color: var(--neon-cyan);
+  filter: drop-shadow(0 0 5px var(--neon-cyan));
+  transition: all 0.3s ease;
+}
+
+.feature-card:hover .feature-icon {
+  color: var(--neon-blue);
+  filter: drop-shadow(0 0 15px var(--neon-blue));
+  transform: scale(1.1) rotate(5deg);
 }
 
 .feature-card p {
