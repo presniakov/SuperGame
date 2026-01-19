@@ -13,7 +13,7 @@ export default function GameCanvas({ socket, onAbort, style = 'text-simple' }: {
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const [countdown, setCountdown] = useState<number | null>(null);
     const spritesRef = useRef<RenderSprite[]>([]);
-    const requestRef = useRef<number>();
+    const requestRef = useRef<number>(0);
     const imagesRef = useRef<Record<string, HTMLImageElement>>({});
 
     const [dimensions, setDimensions] = useState({ width: 800, height: 600 });

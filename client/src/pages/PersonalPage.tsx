@@ -10,13 +10,13 @@ interface PersonalPageProps {
     onViewTutorial?: () => void;
 }
 
-export default function PersonalPage({ username, onStartGame, onViewHistory, onViewTutorial }: PersonalPageProps) {
-    const [letters, setLetters] = useState(['A', 'S']);
+export default function PersonalPage({ username, onStartGame: _onStartGame, onViewHistory, onViewTutorial }: PersonalPageProps) {
+    const [letters, setLetters] = useState(['A', 'L']);
     const [selectedStyle, setSelectedStyle] = useState<GameStyle>('text-simple');
 
     const handleLetterChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        // Allow up to 4 letters for variety, uppercase only, alpha only
-        const val = e.target.value.toUpperCase().replace(/[^A-Z]/g, '').slice(0, 4);
+        // Enforce exactly 2 letters, uppercase only, alpha only
+        const val = e.target.value.toUpperCase().replace(/[^A-Z]/g, '').slice(0, 2);
         setLetters(val.split(''));
     };
 
@@ -49,15 +49,15 @@ export default function PersonalPage({ username, onStartGame, onViewHistory, onV
                         <h2 className="panel-title"><Settings size={20} /> Game Setup</h2>
 
                         <div className="config-section">
-                            <label>Target Letters (Max 4)</label>
+                            <label>Target Letters</label>
                             <input
                                 type="text"
                                 value={letters.join('')}
                                 onChange={handleLetterChange}
-                                placeholder="ASDF"
+                                placeholder="AL"
                                 className="letters-input"
                             />
-                            <p className="hint">Type letters to practice (e.g., ASDF)</p>
+                            <p className="hint">Type 2 letters (e.g., AL)</p>
                         </div>
 
                         <div className="config-section">
@@ -89,8 +89,8 @@ export default function PersonalPage({ username, onStartGame, onViewHistory, onV
 
                         <button
                             className="start-btn pulse-glow"
-                            disabled={letters.length === 0}
-                            onClick={() => onStartGame(letters, selectedStyle)}
+                            disabled={letters.length !== 2}
+                            onClick={() => { /* onStartGame(letters, selectedStyle) - Disabled temporarily */ }}
                         >
                             <Play size={24} fill="currentColor" /> START SESSION
                         </button>
@@ -107,7 +107,7 @@ export default function PersonalPage({ username, onStartGame, onViewHistory, onV
                 <main className="main-content">
                     {/* Recommendations Widget */}
                     <div className="panel-card recommendation-card">
-                        <h2 className="panel-title"><Brain size={20} /> AI Recommendation</h2>
+                        <h2 className="panel-title"><Brain size={20} /> Personalized Recommendation</h2>
                         <div className="rec-content">
                             <div className="rec-icon-wrapper">
                                 <Zap className="rec-icon" size={32} />

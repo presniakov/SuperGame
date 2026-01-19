@@ -1,5 +1,4 @@
 import { Chart as ChartJS, LinearScale, PointElement, LineElement, Tooltip, Legend, CategoryScale, Filler } from 'chart.js';
-import type { ChartOptions } from 'chart.js';
 import { Scatter, Line } from 'react-chartjs-2';
 import { LayoutDashboard } from 'lucide-react';
 import { useState } from 'react';
