@@ -22,7 +22,7 @@ function GameContainer() {
   const [username, setUsername] = useState('');
   const [gameStyle, setGameStyle] = useState<GameStyle>(() => {
     const saved = localStorage.getItem('site-theme');
-    return (saved === 'lab' || saved === 'steam') ? (saved as GameStyle) : 'cyber';
+    return (saved === 'cyber' || saved === 'hi-tech' || saved === 'steam') ? (saved as GameStyle) : 'cyber';
   });
 
   // Apply visual theme globally when gameStyle changes

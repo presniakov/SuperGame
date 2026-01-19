@@ -327,16 +327,95 @@
     }
 }
 
-/* LAB MODE OVERRIDES */
-[data-theme='lab'] .dashboard-header {
-    border-bottom-color: #cbd5e1;
+/* Hi-Tech Override */
+[data-theme='hi-tech'] .personal-container {
+    background: rgba(248, 250, 252, 0.95);
+    /* Slate 50 with opacity */
+    border: 1px solid #cbd5e1;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
 }
 
-[data-theme='lab'] .dashboard-header h1 {
+[data-theme='hi-tech'] .greeting {
+    text-shadow: none;
     color: var(--cyber-text);
 }
 
-[data-theme='lab'] .panel-card {
+[data-theme='hi-tech'] .rank-badge {
+    background: #e0e7ff;
+    /* Indigo 100 */
+    color: var(--neon-purple);
+    border: 1px solid var(--neon-purple);
+    box-shadow: none;
+}
+
+[data-theme='hi-tech'] .stat-card {
+    background: #f1f5f9;
+    /* Slate 100 */
+    border: 1px solid #cbd5e1;
+}
+
+[data-theme='hi-tech'] .stat-card:hover {
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+    transform: translateY(-2px);
+    border-color: var(--neon-blue);
+    background: #ffffff;
+}
+
+[data-theme='hi-tech'] .stat-value {
+    text-shadow: none;
+    color: var(--neon-blue);
+}
+
+[data-theme='hi-tech'] .config-section label {
+    color: var(--cyber-text);
+    text-shadow: none;
+}
+
+[data-theme='hi-tech'] .style-option {
+    background: #f1f5f9;
+    /* Slate 100 */
+    border: 1px solid #cbd5e1;
+    color: var(--cyber-dim);
+}
+
+[data-theme='hi-tech'] .style-option:hover,
+[data-theme='hi-tech'] .style-option.active {
+    background: #ffffff;
+    border-color: var(--neon-blue);
+    color: var(--neon-blue);
+    box-shadow: 0 4px 6px -1px rgba(14, 165, 233, 0.2);
+}
+
+[data-theme='hi-tech'] .start-btn {
+    background: var(--neon-blue);
+    color: white;
+    box-shadow: 0 4px 6px -1px rgba(14, 165, 233, 0.4);
+    border: none;
+}
+
+[data-theme='hi-tech'] .start-btn:hover {
+    background: var(--neon-cyan);
+    transform: translateY(-2px);
+    box-shadow: 0 10px 15px -3px rgba(6, 182, 212, 0.4);
+}
+
+[data-theme='hi-tech'] .tutorial-btn {
+    color: var(--cyber-dim);
+}
+
+[data-theme='hi-tech'] .tutorial-btn:hover {
+    color: var(--neon-blue);
+}
+
+[data-theme='hi-tech'] .dashboard-header {
+    border-bottom-color: #cbd5e1;
+}
+
+[data-theme='hi-tech'] .dashboard-header h1 {
+    color: var(--cyber-text);
+}
+
+[data-theme='hi-tech'] .panel-card {
     background: white;
     border: 1px solid #cbd5e1;
     border-left: 4px solid var(--neon-blue);
@@ -345,49 +424,37 @@
     border-radius: 4px;
 }
 
-[data-theme='lab'] .panel-title {
+[data-theme='hi-tech'] .panel-title {
     color: var(--neon-blue);
     border-bottom-color: #e2e8f0;
 }
 
-[data-theme='lab'] .letters-input {
+[data-theme='hi-tech'] .letters-input {
     background: #f8fafc;
     border-color: #cbd5e1;
     color: var(--cyber-text);
     font-family: var(--font-display);
 }
 
-[data-theme='lab'] .style-option {
-    border-color: #cbd5e1;
-    color: var(--cyber-dim);
-}
-
-[data-theme='lab'] .style-option.active {
-    background: #ecfeff;
-    border-color: var(--neon-cyan);
-    color: var(--neon-cyan);
-    box-shadow: none;
-}
-
-[data-theme='lab'] .rec-icon-wrapper {
+[data-theme='hi-tech'] .rec-icon-wrapper {
     background: #fff1f2;
     /* pink-50 */
     border-color: var(--neon-pink);
 }
 
-[data-theme='lab'] .recommendation-card h3 {
+[data-theme='hi-tech'] .recommendation-card h3 {
     color: var(--cyber-text);
 }
 
-[data-theme='lab'] .activity-desc {
+[data-theme='hi-tech'] .activity-desc {
     color: var(--cyber-text);
 }
 
-[data-theme='lab'] .activity-item {
+[data-theme='hi-tech'] .activity-item {
     border-bottom-color: #e2e8f0;
 }
 
-[data-theme='lab'] .avatar-circle {
+[data-theme='hi-tech'] .avatar-circle {
     background: var(--neon-blue);
     box-shadow: none;
 }

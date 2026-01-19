@@ -63,6 +63,7 @@
   text-transform: uppercase;
   background: linear-gradient(90deg, #fff, var(--neon-blue));
   -webkit-background-clip: text;
+  background-clip: text;
   -webkit-text-fill-color: transparent;
   text-shadow: 0 0 10px rgba(0, 243, 255, 0.4);
   letter-spacing: 2px;

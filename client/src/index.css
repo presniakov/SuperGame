@@ -19,23 +19,30 @@
 }
 
 /* Lab / Light Theme */
-[data-theme='lab'] {
-  --cyber-bg: #f8fafc;
-  --cyber-panel: #ffffff;
-  --neon-cyan: #0284c7;
-  /* Sky 600 */
-  --neon-blue: #0369a1;
-  /* Sky 700 */
-  --neon-pink: #db2777;
-  /* Pink 600 */
+/* Hi-Tech / Minimalistic Theme */
+[data-theme='hi-tech'] {
+  --cyber-bg: #e2e8f0;
+  /* Slate 200 - Silver/Grey (Less Bright) */
+  --cyber-panel: #f8fafc;
+  /* Slate 50 - Off-white panel */
+
+  --neon-cyan: #0891b2;
+  /* Cyan 600 - Darker accent */
+  --neon-blue: #0284c7;
+  /* Sky 600 - Darker primary */
+  --neon-pink: #c026d3;
+  /* Fuchsia 600 */
   --neon-purple: #7c3aed;
   /* Violet 600 */
-  --cyber-text: #334155;
-  /* Slate 700 */
+
+  --cyber-text: #1e293b;
+  /* Slate 800 - Softer Dark Text */
   --cyber-dim: #64748b;
   /* Slate 500 */
-  --font-main: 'Roboto Mono', 'Courier Prime', monospace;
-  --font-display: 'Roboto Mono', monospace;
+
+  --font-main: 'Rajdhani', sans-serif;
+  --font-display: 'Rajdhani', sans-serif;
+
   color-scheme: light;
 }
 
@@ -90,11 +97,11 @@ body {
   background-position: center top;
 }
 
-[data-theme='lab'] body {
+[data-theme='hi-tech'] body {
   background-image:
-    linear-gradient(#e2e8f0 1px, transparent 1px),
-    linear-gradient(90deg, #e2e8f0 1px, transparent 1px);
-  background-size: 20px 20px;
+    linear-gradient(#cbd5e1 1px, transparent 1px),
+    linear-gradient(90deg, #cbd5e1 1px, transparent 1px);
+  background-size: 40px 40px;
 }
 
 [data-theme='steam'] body {

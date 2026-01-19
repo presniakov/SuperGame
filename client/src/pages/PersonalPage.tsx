@@ -85,12 +85,12 @@ export default function PersonalPage({
                                     <span>Cyber</span>
                                 </button>
                                 <button
-                                    className={`style-option ${gameStyle === 'lab' ? 'active' : ''}`}
-                                    onClick={() => handleStyleClick('lab')}
+                                    className={`style-option ${gameStyle === 'hi-tech' ? 'active' : ''}`}
+                                    onClick={() => handleStyleClick('hi-tech')}
                                     type="button"
                                 >
                                     <span className="style-preview simple">Aa</span>
-                                    <span>Lab</span>
+                                    <span>Hi-Tech</span>
                                 </button>
                                 <button
                                     className={`style-option ${gameStyle === 'steam' ? 'active' : ''}`}

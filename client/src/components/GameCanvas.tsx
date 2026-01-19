@@ -177,10 +177,10 @@ export default function GameCanvas({ socket, onAbort, style = 'cyber' }: { socke
                     ctx.shadowColor = LETTER_COLORS[sprite.letter.charCodeAt(0) % LETTER_COLORS.length];
                     ctx.shadowBlur = 20;
                     ctx.fillText(sprite.letter, px, py + 30);
-                } else {
-                    // Lab / Simple Text
-                    ctx.font = "bold 40px Arial";
-                    ctx.fillStyle = "#333";
+                } else if (style === 'hi-tech') {
+                    // Hi-Tech / Clean Text
+                    ctx.font = "500 40px 'Rajdhani', sans-serif";
+                    ctx.fillStyle = "#0f172a";
                     ctx.fillText(sprite.letter, px, py + 30);
                 }
                 ctx.restore();
@@ -205,7 +205,7 @@ export default function GameCanvas({ socket, onAbort, style = 'cyber' }: { socke
             width: dimensions.width,
             height: dimensions.height,
             margin: '0 auto',
-            // Cyber uses dark bg, Lab uses transparent (showing global body bg)
+            // Cyber uses dark bg, Hi-Tech uses transparent (showing global body bg)
             // Steam uses semi-transparent dark to let rivets show through but keep contrast
             background: style === 'cyber' ? '#111' : (style === 'steam' ? 'rgba(0,0,0,0.3)' : 'transparent'),
             overflow: 'hidden'
@@ -214,7 +214,7 @@ export default function GameCanvas({ socket, onAbort, style = 'cyber' }: { socke
                 <div style={{
                     position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)',
                     fontSize: '100px', fontWeight: 'bold',
-                    color: style === 'cyber' ? '#fff' : 'var(--neon-pink)',
+                    color: style === 'cyber' ? '#fff' : (style === 'steam' ? '#d97706' : '#0f172a'),
                     textShadow: style === 'cyber' ? '0 0 20px red' : 'none'
                 }}>
                     {countdown}
