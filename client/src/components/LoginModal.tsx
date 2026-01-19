@@ -21,7 +21,10 @@ export default function LoginModal({ onClose, onSuccess }: LoginModalProps) {
         setLoading(true);
 
         try {
-            const res = await fetch(`http://localhost:4000/api/auth/${type}`, {
+            // In production, use relative URL (proxied by Nginx). In dev, use localhost:4000
+            const apiUrl = import.meta.env.PROD ? '/api' : 'http://localhost:4000/api';
+
+            const res = await fetch(`${apiUrl}/auth/${type}`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ username, password })
