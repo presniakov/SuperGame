@@ -135,3 +135,33 @@ pm2 restart supergame-backend
 ```
 
 **Done!** Your game should now be live at your IP or Domain.
+
+---
+
+## 10. Updating Your Site (After pulling new changes)
+Every time you push changes to GitHub, follow these steps on your server to update the live site:
+
+1. **Pull the latest code**:
+   ```bash
+   cd /var/www/supergame
+   git pull
+   ```
+
+2. **Rebuild the Frontend** (if you changed React files):
+   ```bash
+   cd /var/www/supergame/client
+   npm install      # In case you added new packages
+   npm run build
+   ```
+
+3. **Rebuild the Backend** (if you changed Node/TS files):
+   ```bash
+   cd /var/www/supergame/server
+   npm install      # In case you added new packages
+   npm run build
+   ```
+
+4. **Restart the Server**:
+   ```bash
+   pm2 restart supergame-backend
+   ```
