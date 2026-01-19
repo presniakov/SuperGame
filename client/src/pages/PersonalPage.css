@@ -1,0 +1,150 @@
+.personal-page {
+    min-height: 100vh;
+    background-color: transparent;
+    /* Body bg */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    color: var(--cyber-text);
+}
+
+.personal-card {
+    background: rgba(15, 23, 42, 0.8);
+    backdrop-filter: blur(12px);
+    padding: 3rem;
+    text-align: center;
+    border: 1px solid var(--neon-cyan);
+    box-shadow: 0 0 30px rgba(0, 243, 255, 0.1);
+    max-width: 600px;
+    width: 90%;
+    position: relative;
+    clip-path: polygon(30px 0, 100% 0,
+            100% calc(100% - 30px), calc(100% - 30px) 100%,
+            0 100%, 0 30px);
+}
+
+/* Corner Accents */
+.personal-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 30px;
+    height: 30px;
+    border-top: 2px solid var(--neon-cyan);
+    border-left: 2px solid var(--neon-cyan);
+}
+
+.personal-card::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    right: 0;
+    width: 30px;
+    height: 30px;
+    border-bottom: 2px solid var(--neon-cyan);
+    border-right: 2px solid var(--neon-cyan);
+}
+
+.personal-card h1 {
+    font-size: 3rem;
+    margin-bottom: 0.5rem;
+    color: white;
+    text-shadow: 0 0 10px var(--neon-blue);
+    background: none;
+    -webkit-text-fill-color: white;
+}
+
+.personal-card p {
+    color: var(--cyber-dim);
+    margin-bottom: 3rem;
+    font-size: 1.2rem;
+}
+
+.game-setup {
+    margin-bottom: 2.5rem;
+    text-align: left;
+}
+
+.game-setup label {
+    display: block;
+    margin-bottom: 0.8rem;
+    color: var(--neon-blue);
+    font-weight: 700;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    font-size: 0.9rem;
+}
+
+.game-setup input,
+.game-setup select {
+    width: 100%;
+    padding: 1rem;
+    font-size: 1.5rem;
+    font-family: 'Orbitron', monospace;
+    text-align: center;
+    letter-spacing: 0.5rem;
+    background-color: rgba(0, 0, 0, 0.3);
+    border: 1px solid #334155;
+    border-bottom: 2px solid var(--neon-cyan);
+    /* Underline style */
+    color: white;
+    text-transform: uppercase;
+    transition: all 0.3s;
+    box-sizing: border-box;
+    /* Fix width issues */
+}
+
+.game-setup select {
+    font-size: 1rem;
+    letter-spacing: 1px;
+    text-align: left;
+    cursor: pointer;
+}
+
+.game-setup input:focus,
+.game-setup select:focus {
+    outline: none;
+    border-color: var(--neon-blue);
+    background-color: rgba(0, 243, 255, 0.05);
+    box-shadow: 0 0 15px rgba(0, 243, 255, 0.1);
+}
+
+.game-setup .hint {
+    font-size: 0.9rem;
+    margin-top: 0.5rem;
+    margin-bottom: 0;
+    color: var(--cyber-dim);
+    font-family: 'Rajdhani', sans-serif;
+}
+
+.start-btn {
+    background: linear-gradient(90deg, transparent 0%, rgba(0, 243, 255, 0.2) 50%, transparent 100%);
+    background-color: rgba(0, 243, 255, 0.1);
+    color: var(--neon-blue);
+    border: 1px solid var(--neon-blue);
+    padding: 1.2rem 3rem;
+    font-size: 1.5rem;
+    font-weight: 900;
+    cursor: pointer;
+    transition: all 0.3s;
+    width: 100%;
+    text-transform: uppercase;
+    letter-spacing: 3px;
+    clip-path: polygon(15px 0, 100% 0, 100% calc(100% - 15px), calc(100% - 15px) 100%, 0 100%, 0 15px);
+}
+
+.start-btn:hover:not(:disabled) {
+    transform: translateY(-2px);
+    background-color: var(--neon-blue);
+    color: #000;
+    box-shadow: 0 0 30px var(--neon-blue);
+    text-shadow: none;
+}
+
+.start-btn:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+    border-color: #334155;
+    color: #475569;
+}

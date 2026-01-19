@@ -1,0 +1,93 @@
+.results-page {
+    height: 100vh;
+    width: 100vw;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background-color: transparent;
+    /* Shows body grid */
+    color: var(--cyber-text);
+    padding: 2rem;
+    box-sizing: border-box;
+}
+
+.results-header {
+    text-align: center;
+    margin-bottom: 2rem;
+}
+
+.results-header h1 {
+    font-size: 4rem;
+    margin: 0;
+    color: white;
+    text-shadow: 0 0 20px var(--neon-blue);
+}
+
+.results-header h2 {
+    font-size: 2.5rem;
+    margin: 0.5rem 0;
+    color: var(--neon-purple);
+    text-shadow: 0 0 10px rgba(139, 92, 246, 0.5);
+}
+
+.chart-container {
+    width: 90%;
+    max-width: 1000px;
+    height: 60vh;
+    background: rgba(15, 23, 42, 0.8);
+    backdrop-filter: blur(12px);
+    padding: 2rem;
+    border: 1px solid var(--neon-cyan);
+    box-shadow: 0 0 40px rgba(0, 243, 255, 0.1);
+    position: relative;
+    clip-path: polygon(30px 0, 100% 0,
+            100% calc(100% - 30px), calc(100% - 30px) 100%,
+            0 100%, 0 30px);
+}
+
+/* Corner Accents for Chart */
+.chart-container::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 30px;
+    height: 30px;
+    border-top: 2px solid var(--neon-cyan);
+    border-left: 2px solid var(--neon-cyan);
+}
+
+.chart-container::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    right: 0;
+    width: 30px;
+    height: 30px;
+    border-bottom: 2px solid var(--neon-cyan);
+    border-right: 2px solid var(--neon-cyan);
+}
+
+.restart-btn {
+    margin-top: 2rem;
+    background: linear-gradient(90deg, transparent, rgba(34, 197, 94, 0.2), transparent);
+    background-color: rgba(34, 197, 94, 0.1);
+    color: var(--neon-green);
+    border: 1px solid var(--neon-green);
+    padding: 1rem 3rem;
+    font-size: 1.5rem;
+    font-weight: 800;
+    cursor: pointer;
+    transition: all 0.3s;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    font-family: 'Orbitron', monospace;
+    clip-path: polygon(15px 0, 100% 0, 100% calc(100% - 15px), calc(100% - 15px) 100%, 0 100%, 0 15px);
+}
+
+.restart-btn:hover {
+    background-color: var(--neon-green);
+    color: black;
+    box-shadow: 0 0 30px var(--neon-green);
+}

@@ -1,0 +1,167 @@
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(3, 7, 18, 0.9);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+    animation: fadeIn 0.2s ease-out;
+    backdrop-filter: blur(5px);
+}
+
+.modal-content {
+    background: rgba(15, 23, 42, 0.95);
+    padding: 2.5rem;
+    border: 1px solid var(--neon-purple);
+    /* Login gets purple accent */
+    width: 100%;
+    max-width: 400px;
+    box-shadow: 0 0 40px rgba(139, 92, 246, 0.2);
+    position: relative;
+    clip-path: polygon(20px 0, 100% 0,
+            100% calc(100% - 20px), calc(100% - 20px) 100%,
+            0 100%, 0 20px);
+}
+
+/* Modal Decorative Corners */
+.modal-content::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 20px;
+    height: 20px;
+    border-top: 2px solid var(--neon-purple);
+    border-left: 2px solid var(--neon-purple);
+}
+
+.modal-content::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    right: 0;
+    width: 20px;
+    height: 20px;
+    border-bottom: 2px solid var(--neon-purple);
+    border-right: 2px solid var(--neon-purple);
+}
+
+.modal-close {
+    position: absolute;
+    top: 1rem;
+    right: 1.5rem;
+    background: none;
+    border: none;
+    color: var(--cyber-dim);
+    font-size: 2rem;
+    cursor: pointer;
+    line-height: 1;
+    z-index: 10;
+}
+
+.modal-close:hover {
+    color: var(--neon-pink);
+    text-shadow: 0 0 5px var(--neon-pink);
+}
+
+.modal-title {
+    font-size: 1.8rem;
+    color: white;
+    margin-bottom: 2rem;
+    text-align: center;
+    font-family: 'Orbitron', sans-serif;
+    letter-spacing: 2px;
+    text-shadow: 0 0 10px var(--neon-purple);
+}
+
+.form-group {
+    margin-bottom: 1.5rem;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 0.5rem;
+    color: var(--neon-purple);
+    font-size: 0.9rem;
+    font-weight: 600;
+    letter-spacing: 1px;
+}
+
+.form-group input {
+    width: 100%;
+    padding: 0.8rem;
+    border-radius: 0;
+    background-color: rgba(0, 0, 0, 0.4);
+    border: 1px solid #334155;
+    border-left: 3px solid var(--neon-purple);
+    color: white;
+    font-size: 1rem;
+    font-family: 'Rajdhani', monospace;
+    transition: all 0.3s;
+    box-sizing: border-box;
+}
+
+.form-group input:focus {
+    outline: none;
+    border-color: var(--neon-purple);
+    box-shadow: 0 0 15px rgba(139, 92, 246, 0.2);
+    background-color: rgba(139, 92, 246, 0.05);
+}
+
+.modal-actions {
+    display: flex;
+    gap: 1rem;
+    margin-top: 2.5rem;
+}
+
+.btn-primary,
+.btn-secondary {
+    flex: 1;
+    padding: 0.8rem;
+    border-radius: 0;
+    font-weight: 700;
+    cursor: pointer;
+    border: 1px solid transparent;
+    transition: all 0.3s;
+    text-transform: uppercase;
+    font-family: 'Orbitron', sans-serif;
+    font-size: 0.9rem;
+    clip-path: polygon(10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0 10px);
+}
+
+.btn-primary {
+    background-color: rgba(139, 92, 246, 0.2);
+    border-color: var(--neon-purple);
+    color: var(--neon-purple);
+}
+
+.btn-primary:hover {
+    background-color: var(--neon-purple);
+    color: black;
+    box-shadow: 0 0 20px var(--neon-purple);
+}
+
+.btn-secondary {
+    background-color: transparent;
+    border-color: #64748b;
+    color: #94a3b8;
+}
+
+.btn-secondary:hover {
+    border-color: var(--neon-cyan);
+    color: var(--neon-cyan);
+    box-shadow: 0 0 10px var(--neon-cyan);
+}
+
+.error-msg {
+    color: var(--neon-pink);
+    font-size: 0.9rem;
+    margin-top: 1rem;
+    text-align: center;
+    text-shadow: 0 0 5px rgba(217, 70, 239, 0.5);
+    font-weight: 600;
+}
