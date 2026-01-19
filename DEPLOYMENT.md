@@ -86,12 +86,22 @@ server {
         try_files $uri $uri/ /index.html;
     }
 
-    # Proxy Socket.io / API requests to Backend
+    # Proxy Socket.io requests
     location /socket.io {
         proxy_pass http://localhost:4000; # Server runs on port 4000
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection "upgrade";
+        proxy_set_header Host $host;
+        proxy_cache_bypass $http_upgrade;
+    }
+
+    # Proxy API requests
+    location /api {
+        proxy_pass http://localhost:4000;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection 'upgrade';
         proxy_set_header Host $host;
         proxy_cache_bypass $http_upgrade;
     }
