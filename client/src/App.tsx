@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { SocketProvider, useSocket } from './context/SocketContext';
+import { io, Socket } from 'socket.io-client';
 import GameCanvas from './components/GameCanvas';
 import LandingPage from './pages/LandingPage';
 import PersonalPage from './pages/PersonalPage';
@@ -10,7 +10,8 @@ import type { GameResultData, GameStyle } from './types';
 import './App.css';
 
 function GameContainer() {
-  const socket = useSocket();
+  const [socket, setSocket] = useState<Socket | null>(null);
+
   // Check URL params for dev access
   const params = new URLSearchParams(window.location.search);
   const isDevAccess = params.get('dev') === 'supergame_dev';
@@ -31,26 +32,10 @@ function GameContainer() {
     localStorage.setItem('site-theme', gameStyle);
   }, [gameStyle]);
 
+  // Clean up socket on unmount (refresh/close)
   useEffect(() => {
-    if (!socket) return;
-
-    socket.on('disconnect', () => {
-      console.log('Disconnected form server');
-    });
-
-    socket.on('game_ready', () => {
-      setView('game');
-    });
-
-    socket.on('game_over', (data: GameResultData) => {
-      setResultData(data);
-      setView('result');
-    });
-
     return () => {
-      socket.off('disconnect');
-      socket.off('game_ready');
-      socket.off('game_over');
+      if (socket) socket.disconnect();
     };
   }, [socket]);
 
@@ -60,9 +45,36 @@ function GameContainer() {
   };
 
   const handleStartGame = (letters: string[]) => {
-    // Style is already set in state
-    socket?.emit('join_game', { letters, userId: username });
-    // Wait for 'game_ready' to switch view
+    // 1. Establish new connection
+    const socketUrl = import.meta.env.PROD ? '/' : 'http://localhost:4000';
+    const newSocket = io(socketUrl);
+    setSocket(newSocket);
+
+    // 2. Setup Listeners
+    newSocket.on('connect', () => {
+      // 3. Join Game
+      newSocket.emit('join_game', { letters, userId: username });
+    });
+
+    newSocket.on('game_ready', () => {
+      setView('game');
+    });
+
+    newSocket.on('game_over', (data: GameResultData) => {
+      setResultData(data);
+      setView('result');
+      // Close connection on game over
+      newSocket.disconnect();
+      setSocket(null);
+    });
+  };
+
+  const handleAbort = () => {
+    if (socket) {
+      socket.disconnect();
+      setSocket(null);
+    }
+    setView('menu');
   };
 
   const handleViewHistory = () => {
@@ -115,7 +127,7 @@ function GameContainer() {
   }
 
   if (view === 'game') {
-    return <GameCanvas socket={socket} onAbort={() => setView('menu')} style={gameStyle} />;
+    return <GameCanvas socket={socket} onAbort={handleAbort} style={gameStyle} />;
   }
 
   if ((view === 'result' || view === 'history') && resultData) {
@@ -126,9 +138,5 @@ function GameContainer() {
 }
 
 export default function App() {
-  return (
-    <SocketProvider>
-      <GameContainer />
-    </SocketProvider>
-  );
+  return <GameContainer />;
 }
