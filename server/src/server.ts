@@ -6,6 +6,7 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import authRouter from './routes/auth';
 import gameHandler from './socket/gameHandler';
+import { socketAuth } from './middleware/auth';
 
 dotenv.config();
 
@@ -32,8 +33,11 @@ mongoose.connect(MONGODB_URI)
     .then(() => console.log('Connected to MongoDB'))
     .catch((err) => console.error('MongoDB connection error:', err));
 
+// Apply Auth Middleware
+io.use(socketAuth);
+
 io.on('connection', (socket) => {
-    console.log('User connected:', socket.id);
+    console.log(`User connected: ${socket.id} (User ID: ${socket.user?.id})`);
 
     gameHandler(io, socket);
 

@@ -3,7 +3,7 @@ import './LoginModal.css';
 
 interface LoginModalProps {
     onClose: () => void;
-    onSuccess: (username: string) => void;
+    onSuccess: (username: string, token: string) => void;
 }
 
 export default function LoginModal({ onClose, onSuccess }: LoginModalProps) {
@@ -36,7 +36,7 @@ export default function LoginModal({ onClose, onSuccess }: LoginModalProps) {
                 throw new Error(data.msg || 'Authentication failed');
             }
 
-            onSuccess(data.user.username);
+            onSuccess(data.user.username, data.token);
         } catch (err: any) {
             setError(err.message);
         } finally {

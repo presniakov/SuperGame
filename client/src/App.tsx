@@ -26,6 +26,16 @@ function GameContainer() {
     return (saved === 'cyber' || saved === 'hi-tech' || saved === 'steam') ? (saved as GameStyle) : 'cyber';
   });
 
+  // Check for persistent session
+  useEffect(() => {
+    const savedToken = localStorage.getItem('token');
+    const savedUser = localStorage.getItem('username');
+    if (savedToken && savedUser) {
+      setUsername(savedUser);
+      setView('menu');
+    }
+  }, []);
+
   // Apply visual theme globally when gameStyle changes
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', gameStyle);
@@ -39,7 +49,9 @@ function GameContainer() {
     };
   }, [socket]);
 
-  const handleLoginSuccess = (user: string) => {
+  const handleLoginSuccess = (user: string, token: string) => {
+    localStorage.setItem('token', token);
+    localStorage.setItem('username', user);
     setUsername(user);
     setView('menu');
   };
@@ -47,10 +59,27 @@ function GameContainer() {
   const handleStartGame = (letters: string[]) => {
     // 1. Establish new connection
     const socketUrl = import.meta.env.PROD ? '/' : 'http://localhost:4000';
-    const newSocket = io(socketUrl);
+    const token = localStorage.getItem('token');
+
+    const newSocket = io(socketUrl, {
+      auth: { token }
+    });
     setSocket(newSocket);
 
     // 2. Setup Listeners
+    newSocket.on('connect_error', (err) => {
+      console.error('Socket connection error:', err.message);
+      // If unauthorized, log out
+      if (err.message.includes('Authentication error')) {
+        localStorage.removeItem('token');
+        localStorage.removeItem('username');
+        setUsername('');
+        setView('landing');
+        newSocket.disconnect();
+        setSocket(null);
+        alert('Session expired. Please log in again.');
+      }
+    });
     newSocket.on('connect', () => {
       // 3. Join Game
       newSocket.emit('join_game', { letters, userId: username });
