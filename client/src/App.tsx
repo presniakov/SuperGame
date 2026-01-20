@@ -33,6 +33,19 @@ function GameContainer() {
     if (savedToken && savedUser) {
       setUsername(savedUser);
       setView('menu');
+
+      // Sync with backend
+      const apiUrl = import.meta.env.PROD ? '/api' : 'http://localhost:4000/api';
+      fetch(`${apiUrl}/user/me`, {
+        headers: { 'x-auth-token': savedToken }
+      })
+        .then(res => res.json())
+        .then(data => {
+          if (data.preferences?.theme) {
+            setGameStyle(data.preferences.theme as GameStyle);
+          }
+        })
+        .catch(console.error);
     }
   }, []);
 
@@ -40,6 +53,19 @@ function GameContainer() {
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', gameStyle);
     localStorage.setItem('site-theme', gameStyle);
+
+    const token = localStorage.getItem('token');
+    if (token) {
+      const apiUrl = import.meta.env.PROD ? '/api' : 'http://localhost:4000/api';
+      fetch(`${apiUrl}/user/preferences`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-auth-token': token
+        },
+        body: JSON.stringify({ theme: gameStyle })
+      }).catch(err => console.error('Failed to sync preferences:', err));
+    }
   }, [gameStyle]);
 
   // Clean up socket on unmount (refresh/close)
@@ -49,16 +75,27 @@ function GameContainer() {
     };
   }, [socket]);
 
-  const handleLoginSuccess = (user: string, token: string) => {
+  const handleLoginSuccess = (user: string, token: string, preferences?: { theme: string }) => {
     localStorage.setItem('token', token);
     localStorage.setItem('username', user);
     setUsername(user);
+    // Enforce theme from profile, or default to 'cyber' to ensure isolation from previous user
+    if (preferences?.theme) {
+      setGameStyle(preferences.theme as GameStyle);
+    } else {
+      setGameStyle('cyber');
+    }
     setView('menu');
   };
 
   const handleLogout = () => {
     localStorage.removeItem('token');
     localStorage.removeItem('username');
+    // We intentionally do NOT clear site-theme from localStorage here to keep the aesthetic
+    // consistent if the user just stays on the landing page.
+    // However, to ensure isolation, we reset the internal state to 'cyber' so that
+    // the next login starts fresh.
+    setGameStyle('cyber');
     setUsername('');
     setView('landing');
   };
