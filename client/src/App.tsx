@@ -56,6 +56,13 @@ function GameContainer() {
     setView('menu');
   };
 
+  const handleLogout = () => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('username');
+    setUsername('');
+    setView('landing');
+  };
+
   const handleStartGame = (letters: string[]) => {
     // 1. Establish new connection
     const socketUrl = import.meta.env.PROD ? '/' : 'http://localhost:4000';
@@ -151,6 +158,7 @@ function GameContainer() {
         onStartGame={handleStartGame}
         onViewHistory={handleViewHistory}
         onViewTutorial={() => setView('tutorial')}
+        onLogout={handleLogout}
       />
     );
   }

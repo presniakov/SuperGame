@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Play, Settings, Zap, BarChart3, Brain, Layout, TrendingUp, HelpCircle } from 'lucide-react';
+import { Play, Settings, Zap, BarChart3, Brain, Layout, TrendingUp, HelpCircle, LogOut } from 'lucide-react';
 import type { GameStyle } from '../types';
 import './PersonalPage.css';
 
@@ -10,6 +10,7 @@ interface PersonalPageProps {
     onStartGame: (letters: string[]) => void;
     onViewHistory?: () => void;
     onViewTutorial?: () => void;
+    onLogout: () => void;
 }
 
 export default function PersonalPage({
@@ -18,7 +19,8 @@ export default function PersonalPage({
     onStyleChange,
     onStartGame: _onStartGame,
     onViewHistory,
-    onViewTutorial
+    onViewTutorial,
+    onLogout
 }: PersonalPageProps) {
     const [letters, setLetters] = useState(['A', 'L']);
 
@@ -44,6 +46,10 @@ export default function PersonalPage({
                     </div>
                 </div>
                 <div className="header-stats">
+                    <button className="logout-btn" onClick={onLogout} title="Logout">
+                        <LogOut size={18} />
+                        <span>Logout</span>
+                    </button>
                     <div className="stat-item">
                         <Zap size={16} />
                         <span>Streak: 3 Days</span>
