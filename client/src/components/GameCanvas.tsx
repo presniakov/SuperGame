@@ -52,10 +52,13 @@ export default function GameCanvas({ socket, onAbort, style = 'cyber', duration 
 
 
 
+    const hasStartedRef = useRef(false);
+
     useEffect(() => {
         if (!socket) return;
 
-        socket.on('start_countdown', ({ count }) => {
+        // Listener Definitions
+        const onCountdown = ({ count }: { count: number }) => {
             setCountdown(count);
             spritesRef.current = []; // Clear sprites
             let cur = count;
@@ -71,18 +74,15 @@ export default function GameCanvas({ socket, onAbort, style = 'cyber', duration 
                     setCountdown(cur);
                 }
             }, 1000);
-        });
+        };
 
-        socket.on('spawn_sprite', (event: SpawnEvent) => {
+        const onSpawn = (event: SpawnEvent) => {
             const now = Date.now();
-            // Calculate when to start based on previous end time + delay
-            // If first event, delay might be applied to session start
             const baseTime = lastEventEndRef.current || now;
             const targetStartTime = baseTime + (event.delay || 0);
             const waitTime = Math.max(0, targetStartTime - now);
 
             setTimeout(() => {
-                // Start Event
                 eventStartRef.current = Date.now();
                 eventIdRef.current = event.eventId;
                 resultsRef.current = [];
@@ -96,14 +96,26 @@ export default function GameCanvas({ socket, onAbort, style = 'cyber', duration 
                     });
                 });
             }, waitTime);
-        });
-
-        socket.emit('start_game');
-
-        return () => {
-            socket.off('start_countdown');
-            socket.off('spawn_sprite');
         };
+
+        // Attach Listeners Always
+        socket.on('start_countdown', onCountdown);
+        socket.on('spawn_sprite', onSpawn);
+
+        // Clean up
+        const cleanup = () => {
+            socket.off('start_countdown', onCountdown);
+            socket.off('spawn_sprite', onSpawn);
+        };
+
+        // Emit start_game only once
+        if (!hasStartedRef.current) {
+            console.log('Emitting start_game');
+            socket.emit('start_game');
+            hasStartedRef.current = true;
+        }
+
+        return cleanup;
     }, [socket]);
 
     // Timer Interval
@@ -273,6 +285,10 @@ export default function GameCanvas({ socket, onAbort, style = 'cyber', duration 
 
             for (let i = toRemove.length - 1; i >= 0; i--) {
                 spritesRef.current.splice(toRemove[i], 1);
+            }
+
+            if (toRemove.length > 0) {
+                checkEventCompletion();
             }
 
             requestRef.current = requestAnimationFrame(animate);

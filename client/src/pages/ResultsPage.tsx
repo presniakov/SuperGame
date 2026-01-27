@@ -120,7 +120,7 @@ export default function ResultsPage({ onBack, theme }: ResultsPageProps) {
             labels: sorted.map(r => new Date(r.date).toLocaleDateString()),
             datasets: [{
                 label: 'Session Max Speed',
-                data: sorted.map(r => r.maxSpeed || 0),
+                data: sorted.map(r => r.statistics?.maxSpeed || 0),
                 borderColor: themeColors.primary,
                 backgroundColor: themeColors.primary, // transparency handling tricky with hex, keeping solid or adding opacity manually if needed
                 tension: 0.1
@@ -208,10 +208,45 @@ export default function ResultsPage({ onBack, theme }: ResultsPageProps) {
                             >
                                 {results.map(r => (
                                     <option key={r._id} value={r._id}>
-                                        {new Date(r.date).toLocaleString()} (Max: {r.maxSpeed})
+                                        {new Date(r.date).toLocaleString()}
                                     </option>
                                 ))}
                             </select>
+                        </div>
+
+                        {/* Session Statistics */}
+                        <div className="card stats-card">
+                            <h3>Session Statistics</h3>
+                            {selectedResult?.statistics ? (
+                                <div className="stats-grid">
+                                    <div className="stat-item">
+                                        <span className="label">Start Speed</span>
+                                        <span className="value">{selectedResult.statistics.startSpeed}</span>
+                                    </div>
+                                    <div className="stat-item">
+                                        <span className="label">Max Speed</span>
+                                        <span className="value">{selectedResult.statistics.maxSpeed.toFixed(1)}</span>
+                                    </div>
+                                    <div className="stat-item">
+                                        <span className="label">Event Count</span>
+                                        <span className="value">{selectedResult.eventLog.length}</span>
+                                    </div>
+                                    <div className="stat-item">
+                                        <span className="label">Total Score</span>
+                                        <span className="value">{selectedResult.statistics.totalScore || 0}</span>
+                                    </div>
+                                    <div className="stat-item">
+                                        <span className="label">Error Rate (First 2/3)</span>
+                                        <span className="value">{selectedResult.statistics.errorRateFirst23.toFixed(1)}%</span>
+                                    </div>
+                                    <div className="stat-item">
+                                        <span className="label">Error Rate (Last 1/3)</span>
+                                        <span className="value">{selectedResult.statistics.errorRateLast13.toFixed(1)}%</span>
+                                    </div>
+                                </div>
+                            ) : (
+                                <p className="no-data">No statistics available</p>
+                            )}
                         </div>
 
                         {/* Main Scatter Plot */}

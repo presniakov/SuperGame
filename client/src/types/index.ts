@@ -49,10 +49,10 @@ export interface IGameResult {
     userId: string;
     date: string;
     score: number;
-    maxSpeed: number;
     statistics?: {
         startSpeed: number;
         maxSpeed: number;
+        totalScore: number;
         errorRateFirst23: number;
         errorRateLast13: number;
     };

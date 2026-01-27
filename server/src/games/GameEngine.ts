@@ -335,12 +335,16 @@ export class GameSession {
             username: 'Player'
         });
 
+        if (totalDuration < 20000) {
+            console.log(`[SERVER] Session too short (${totalDuration}ms). Results not saved.`);
+            return;
+        }
+
         // Create GameResult document but don't save yet
         const result = new GameResult({
             userId: this.userId,
             score: this.score,
             letters: this.targetLetters,
-            maxSpeed: this.sessionMaxSpeed,
             eventLog: this.history,
             duration: totalDuration,
             date: new Date()
@@ -366,10 +370,18 @@ export class GameSession {
 
         const errorRateFirst23 = calculateErrorRate(eventsFirst23);
         const errorRateLast13 = calculateErrorRate(eventsLast13);
+        const totalErrorRate = calculateErrorRate(this.history);
+
+        const totalScore = Math.max(0, Math.floor(
+            (this.sessionMaxSpeed * 10) +
+            (this.history.length * 5) -
+            (totalErrorRate * 20)
+        ));
 
         gameResult.statistics = {
             startSpeed: this.startSpeed,
             maxSpeed: this.sessionMaxSpeed,
+            totalScore,
             errorRateFirst23,
             errorRateLast13
         };
