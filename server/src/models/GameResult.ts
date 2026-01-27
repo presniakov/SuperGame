@@ -5,6 +5,8 @@ export interface IGameEvent {
     speed: number;
     result: 'hit' | 'miss' | 'wrong';
     letter: string;
+    eventType: 'single' | 'double';
+    eventDuration: number;
 }
 
 export interface IGameResult extends Document {
@@ -20,7 +22,9 @@ const GameResultSchema: Schema = new Schema({
         timeOffset: Number,
         speed: Number,
         result: String,
-        letter: String
+        letter: String,
+        eventType: String,
+        eventDuration: Number
     }]
 });
 

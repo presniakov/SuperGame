@@ -7,6 +7,17 @@ export interface IUser extends Document {
         theme: string;
     };
     role: 'user' | 'admin';
+    statistics?: {
+        lastSession: {
+            startSpeed: number;
+            maxSpeed: number;
+            errorRateFirst23: number;
+            errorRateLast13: number;
+        };
+        global: {
+            maxSpeed: number;
+        };
+    };
 }
 
 const UserSchema: Schema = new Schema({
@@ -19,6 +30,17 @@ const UserSchema: Schema = new Schema({
         type: String,
         enum: ['user', 'admin'],
         default: 'user'
+    },
+    statistics: {
+        lastSession: {
+            startSpeed: { type: Number, default: 0 },
+            maxSpeed: { type: Number, default: 0 },
+            errorRateFirst23: { type: Number, default: 0 },
+            errorRateLast13: { type: Number, default: 0 }
+        },
+        global: {
+            maxSpeed: { type: Number, default: 0 }
+        }
     }
 });
 

@@ -1,5 +1,6 @@
 import { v4 as uuidv4 } from 'uuid';
 import GameResult from '../models/GameResult';
+import User from '../models/User';
 
 // Constants roughly estimating letter size in our 0-100 coordinate system
 const LETTER_SIZE = 5; // assumes ~5% screen size
@@ -26,10 +27,13 @@ export class GameSession {
 
     // Difficulty params
     private currentSpeed: number = 80; // units per second
+    private startSpeed: number = 80;
+    private sessionMaxSpeed: number = 80;
 
     // Event State
     private activeSprites: SpriteState[] = [];
     private currentEventId: string | null = null;
+    private currentEventType: 'single' | 'double' = 'single';
     private eventTimeout: NodeJS.Timeout | null = null;
     private isRunning: boolean = false;
 
@@ -39,6 +43,8 @@ export class GameSession {
         this.targetLetters = letters;
         this.startTime = Date.now();
         this.isActive = true;
+        this.startSpeed = this.currentSpeed;
+        this.sessionMaxSpeed = this.currentSpeed;
     }
 
     public getUserId(): string {
@@ -71,6 +77,7 @@ export class GameSession {
         // Track active sprites (snapshot for validation if needed, though batch validation differs)
         this.activeSprites = event.sprites.map(s => ({ id: s.id, letter: s.letter, active: true }));
         this.currentEventId = event.eventId;
+        this.currentEventType = event.type as 'single' | 'double';
 
         emitSpawn(event);
     }
@@ -238,6 +245,7 @@ export class GameSession {
         for (const item of data.results) {
             const { result, letter, spriteId } = item;
             const timeOffset = data.endTime;
+            const eventDuration = data.endTime - data.startTime;
 
             // Find which sprite this result is for
             // Note: 'wrong' result has no spriteId usually, or we match by letter? 
@@ -245,7 +253,7 @@ export class GameSession {
             if (result === 'wrong') {
                 this.score = Math.max(0, this.score - 5);
                 this.currentSpeed = Math.max(MIN_SPEED, this.currentSpeed - 0.5);
-                this.history.push({ result: 'wrong', letter, speed: this.currentSpeed, timeOffset });
+                this.history.push({ result: 'wrong', letter, speed: this.currentSpeed, timeOffset, eventType: this.currentEventType, eventDuration });
                 batchFailed = true;
                 break;
             }
@@ -256,7 +264,7 @@ export class GameSession {
                 // Should not happen for valid sprites. Maybe older event reference?
                 // Treat as wrong.
                 this.score = Math.max(0, this.score - 5);
-                this.history.push({ result: 'wrong', letter, speed: this.currentSpeed, timeOffset });
+                this.history.push({ result: 'wrong', letter, speed: this.currentSpeed, timeOffset, eventType: this.currentEventType, eventDuration });
                 batchFailed = true;
                 break;
             }
@@ -267,7 +275,7 @@ export class GameSession {
                 // Fail the event.
                 this.score = Math.max(0, this.score - 5);
                 this.currentSpeed = Math.max(MIN_SPEED, this.currentSpeed - 0.5);
-                this.history.push({ result: 'wrong', letter: `Order mismatch: Expected ${this.activeSprites[expectedIndex].letter}, Got ${letter}`, speed: this.currentSpeed, timeOffset });
+                this.history.push({ result: 'wrong', letter: `Order mismatch: Expected ${this.activeSprites[expectedIndex].letter}, Got ${letter}`, speed: this.currentSpeed, timeOffset, eventType: this.currentEventType, eventDuration });
                 batchFailed = true;
                 break;
             }
@@ -285,12 +293,13 @@ export class GameSession {
                 const increment = Math.max(0.1, gap * 0.02);
 
                 this.currentSpeed = Math.min(this.currentSpeed + increment, MAX_SPEED);
-                this.history.push({ result: 'hit', letter, speed: this.currentSpeed, timeOffset });
+                this.sessionMaxSpeed = Math.max(this.sessionMaxSpeed, this.currentSpeed);
+                this.history.push({ result: 'hit', letter, speed: this.currentSpeed, timeOffset, eventType: this.currentEventType, eventDuration });
             } else {
                 // Miss
                 this.score = Math.max(0, this.score - 5);
                 this.currentSpeed = Math.max(MIN_SPEED, this.currentSpeed - 0.5);
-                this.history.push({ result: 'miss', letter, speed: this.currentSpeed, timeOffset });
+                this.history.push({ result: 'miss', letter, speed: this.currentSpeed, timeOffset, eventType: this.currentEventType, eventDuration });
             }
 
             expectedIndex++;
@@ -318,6 +327,8 @@ export class GameSession {
         this.isActive = false;
         if (this.eventTimeout) clearTimeout(this.eventTimeout);
 
+        const totalDuration = Date.now() - this.startTime;
+
         onGameOver({
             score: this.score,
             history: this.history,
@@ -330,8 +341,57 @@ export class GameSession {
             score: this.score,
             letters: this.targetLetters,
             eventLog: this.history,
-            duration: Date.now() - this.startTime
+            duration: totalDuration
         });
         result.save().catch(console.error);
+
+        // Update User Statistics
+        this.updateUserStatistics(totalDuration).catch(console.error);
+    }
+
+    private async updateUserStatistics(totalDuration: number) {
+        if (!this.userId) return;
+
+        try {
+            // Calculate Error Rates
+            const time23 = totalDuration * (2 / 3);
+
+            const eventsFirst23 = this.history.filter(h => h.timeOffset <= time23);
+            const eventsLast13 = this.history.filter(h => h.timeOffset > time23);
+
+            const calculateErrorRate = (events: any[]) => {
+                if (events.length === 0) return 0;
+                const errors = events.filter(e => e.result === 'miss' || e.result === 'wrong').length;
+                return (errors / events.length) * 100;
+            };
+
+            const errorRateFirst23 = calculateErrorRate(eventsFirst23);
+            const errorRateLast13 = calculateErrorRate(eventsLast13);
+
+            // Fetch current user logic to check global max
+            const user = await User.findById(this.userId);
+            if (!user) return;
+
+            const currentGlobalMax = user.statistics?.global?.maxSpeed || 0;
+            const newGlobalMax = Math.max(currentGlobalMax, this.sessionMaxSpeed);
+
+            user.statistics = {
+                lastSession: {
+                    startSpeed: this.startSpeed,
+                    maxSpeed: this.sessionMaxSpeed,
+                    errorRateFirst23,
+                    errorRateLast13
+                },
+                global: {
+                    maxSpeed: newGlobalMax
+                }
+            };
+
+            await user.save();
+            console.log(`[SERVER] User stats updated for ${this.userId}`);
+
+        } catch (error) {
+            console.error(`[SERVER] Failed to update user stats:`, error);
+        }
     }
 }
