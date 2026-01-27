@@ -26,13 +26,28 @@ ChartJS.register(
 
 interface ResultsPageProps {
     onBack: () => void;
+    theme: string; // Receive theme to trigger updates
 }
 
-export default function ResultsPage({ onBack }: ResultsPageProps) {
+export default function ResultsPage({ onBack, theme }: ResultsPageProps) {
     const [results, setResults] = useState<IGameResult[]>([]);
     const [selectedResultId, setSelectedResultId] = useState<string | null>(null);
     const [loading, setLoading] = useState(true);
     const [activeTab, setActiveTab] = useState<'session' | 'progress'>('session');
+
+    // Helper to get theme colors
+    const getThemeColor = (variable: string) => {
+        return getComputedStyle(document.documentElement).getPropertyValue(variable).trim();
+    };
+
+    // Memoize colors based on theme to trigger re-read
+    const themeColors = useMemo(() => ({
+        hit: getThemeColor('--neon-cyan') || '#00d4ff', // cyan/blue logic
+        miss: getThemeColor('--neon-pink') || '#ff0055',
+        primary: getThemeColor('--neon-blue') || '#00d4ff',
+        text: getThemeColor('--cyber-text') || '#aaa',
+        grid: getThemeColor('--cyber-dim') || '#333'
+    }), [theme]); // Re-run when theme changes
 
     useEffect(() => {
         fetchHistory();
@@ -81,13 +96,11 @@ export default function ResultsPage({ onBack }: ResultsPageProps) {
                 backgroundColor: (ctx: any) => {
                     const raw = ctx.raw as any;
                     if (!raw) return 'gray';
-                    // User requested: Orange for success, Red for failure
-                    return raw.result === 'hit' ? '#FFA500' : '#FF0000';
+                    return raw.result === 'hit' ? themeColors.hit : themeColors.miss;
                 },
                 pointRadius: (ctx: any) => {
                     const raw = ctx.raw as any;
                     if (!raw) return 5;
-                    // User requested: "bold dot for double event" -> larger size
                     return raw.isDouble ? 8 : 5;
                 },
                 pointBorderWidth: (ctx: any) => {
@@ -97,50 +110,64 @@ export default function ResultsPage({ onBack }: ResultsPageProps) {
                 borderColor: '#FFF',
             }]
         };
-    }, [selectedResult]);
+    }, [selectedResult, themeColors]); // Depend on themeColors
 
-    // Graph 2: Score Progress (Line) - NOTE: Uses Max Speed as Score
+    // Graph 2: Score Progress
     const progressData = useMemo(() => {
-        // Sort chronological for line chart
         const sorted = [...results].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 
         return {
             labels: sorted.map(r => new Date(r.date).toLocaleDateString()),
             datasets: [{
                 label: 'Session Max Speed',
-                data: sorted.map(r => r.maxSpeed || 0), // Use maxSpeed as score
-                borderColor: '#00d4ff',
-                backgroundColor: 'rgba(0, 212, 255, 0.2)',
+                data: sorted.map(r => r.maxSpeed || 0),
+                borderColor: themeColors.primary,
+                backgroundColor: themeColors.primary, // transparency handling tricky with hex, keeping solid or adding opacity manually if needed
                 tension: 0.1
             }]
         };
-    }, [results]);
+    }, [results, themeColors]);
 
-    const scatterOptions = {
+    const chartOptions = {
         responsive: true,
         plugins: {
-            legend: { display: false },
-            title: { display: true, text: 'Speed vs Time' },
+            legend: { display: false, labels: { color: themeColors.text } },
+            title: { display: true, color: themeColors.text },
             tooltip: {
-                callbacks: {
-                    label: (context: any) => {
-                        const p = context.raw;
-                        return `${p.result.toUpperCase()} | Speed: ${p.y} | Time: ${p.x}ms`;
-                    }
-                }
+                titleColor: themeColors.text,
+                bodyColor: themeColors.text,
+                backgroundColor: 'rgba(0,0,0,0.8)'
             }
         },
         scales: {
-            x: { title: { display: true, text: 'Time (ms)' } },
-            y: { title: { display: true, text: 'Speed' }, min: 0, max: 100 }
+            x: {
+                title: { display: true, text: 'Time (ms)', color: themeColors.text },
+                ticks: { color: themeColors.text },
+                grid: { color: 'rgba(255,255,255,0.1)' }
+            },
+            y: {
+                title: { display: true, text: 'Speed', color: themeColors.text },
+                min: 0,
+                max: 100,
+                ticks: { color: themeColors.text },
+                grid: { color: 'rgba(255,255,255,0.1)' }
+            }
+        }
+    };
+
+    const scatterOptions = {
+        ...chartOptions,
+        plugins: {
+            ...chartOptions.plugins,
+            title: { ...chartOptions.plugins.title, text: 'Speed vs Time' }
         }
     };
 
     const progressOptions = {
-        responsive: true,
+        ...chartOptions,
         plugins: {
-            legend: { display: false },
-            title: { display: true, text: 'Progress (Max Speed)' }
+            ...chartOptions.plugins,
+            title: { ...chartOptions.plugins.title, text: 'Progress (Max Speed)' }
         }
     };
 

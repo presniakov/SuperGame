@@ -185,7 +185,7 @@ function GameContainer() {
   }
 
   if (view === 'result' || view === 'history') {
-    return <ResultsPage onBack={() => setView('menu')} />;
+    return <ResultsPage onBack={() => setView('menu')} theme={gameStyle} />;
   }
 
   return <div>Loading...</div>;
