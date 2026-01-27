@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Play, Settings, Zap, BarChart3, Brain, Layout, TrendingUp, HelpCircle, LogOut } from 'lucide-react';
+import { Play, Settings, Zap, BarChart3, Brain, Layout, TrendingUp, HelpCircle, LogOut, Shield } from 'lucide-react';
 import type { GameStyle } from '../types';
 import './PersonalPage.css';
 
@@ -11,16 +11,18 @@ interface PersonalPageProps {
     onViewHistory?: () => void;
     onViewTutorial?: () => void;
     onLogout: () => void;
+    isAdmin?: boolean;
 }
 
 export default function PersonalPage({
     username,
     gameStyle,
     onStyleChange,
-    onStartGame: _onStartGame,
+    onStartGame,
     onViewHistory,
     onViewTutorial,
-    onLogout
+    onLogout,
+    isAdmin
 }: PersonalPageProps) {
     const [letters, setLetters] = useState(['A', 'L']);
 
@@ -35,6 +37,32 @@ export default function PersonalPage({
         onStyleChange(style);
     };
 
+    const handleAdminAccess = async (e: React.MouseEvent) => {
+        e.preventDefault();
+        try {
+            const token = localStorage.getItem('token');
+            if (!token) return;
+
+            const apiUrl = import.meta.env.PROD ? '/api' : 'http://localhost:4000/api';
+            const res = await fetch(`${apiUrl}/auth/admin-session`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'x-auth-token': token
+                }
+            });
+
+            if (res.ok) {
+                window.location.href = '/admin.html';
+            } else {
+                alert('Admin access denied.');
+            }
+        } catch (err) {
+            console.error('Failed to initialize admin session', err);
+            alert('Error initializing admin session');
+        }
+    };
+
     return (
         <div className="personal-page dashboard-layout">
             <header className="dashboard-header">
@@ -42,7 +70,7 @@ export default function PersonalPage({
                     <div className="avatar-circle">{username.substring(0, 2).toUpperCase()}</div>
                     <div>
                         <h1>{username}</h1>
-                        <p className="level-badge">Level 1 • Novice</p>
+                        <p className="level-badge">Level 1 • Novice {isAdmin && <span style={{ color: '#ff4444', marginLeft: '5px' }}>• ADMIN</span>}</p>
                     </div>
                 </div>
                 <div className="header-stats">
@@ -112,7 +140,7 @@ export default function PersonalPage({
                         <button
                             className="start-btn pulse-glow"
                             disabled={letters.length !== 2}
-                            onClick={() => { /* onStartGame(letters) */ }}
+                            onClick={() => onStartGame(letters)}
                         >
                             <Play size={24} fill="currentColor" /> START SESSION
                         </button>
@@ -121,6 +149,12 @@ export default function PersonalPage({
                             <button className="tutorial-btn" onClick={onViewTutorial}>
                                 <HelpCircle size={18} /> HOW TO PLAY
                             </button>
+                        )}
+
+                        {isAdmin && (
+                            <a href="/admin.html" onClick={handleAdminAccess} className="tutorial-btn" style={{ borderColor: '#ff4444', color: '#ff4444', marginTop: '10px', textDecoration: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+                                <Shield size={18} /> ADMIN ACCESS
+                            </a>
                         )}
                     </div>
                 </aside>

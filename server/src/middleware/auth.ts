@@ -4,6 +4,7 @@ import { Request, Response, NextFunction } from 'express';
 
 interface AuthPayload {
     id: string;
+    role: string;
 }
 
 // Extend Express Request type to include user

@@ -9,6 +9,9 @@ import ComingSoonPage from './pages/ComingSoonPage';
 import type { GameResultData, GameStyle } from './types';
 import './App.css';
 
+// Lazy load Admin Dashboard (Code Splitting)
+// Lazy load Admin Dashboard (Code Splitting) - MOVED TO SEPARATE APP
+
 function GameContainer() {
   const [socket, setSocket] = useState<Socket | null>(null);
 
@@ -21,6 +24,7 @@ function GameContainer() {
   );
   const [resultData, setResultData] = useState<GameResultData | null>(null);
   const [username, setUsername] = useState('');
+  const [userRole, setUserRole] = useState<'user' | 'admin'>('user');
   const [gameStyle, setGameStyle] = useState<GameStyle>(() => {
     const saved = localStorage.getItem('site-theme');
     return (saved === 'cyber' || saved === 'hi-tech' || saved === 'steam') ? (saved as GameStyle) : 'cyber';
@@ -43,6 +47,9 @@ function GameContainer() {
         .then(data => {
           if (data.preferences?.theme) {
             setGameStyle(data.preferences.theme as GameStyle);
+          }
+          if (data.role) {
+            setUserRole(data.role);
           }
         })
         .catch(console.error);
@@ -75,10 +82,12 @@ function GameContainer() {
     };
   }, [socket]);
 
-  const handleLoginSuccess = (user: string, token: string, preferences?: { theme: string }) => {
+  const handleLoginSuccess = (user: string, token: string, preferences?: { theme: string }, role?: 'user' | 'admin') => {
     localStorage.setItem('token', token);
     localStorage.setItem('username', user);
     setUsername(user);
+    if (role) setUserRole(role);
+
     // Enforce theme from profile, or default to 'cyber' to ensure isolation from previous user
     if (preferences?.theme) {
       setGameStyle(preferences.theme as GameStyle);
@@ -97,6 +106,7 @@ function GameContainer() {
     // the next login starts fresh.
     setGameStyle('cyber');
     setUsername('');
+    setUserRole('user');
     setView('landing');
   };
 
@@ -196,6 +206,7 @@ function GameContainer() {
         onViewHistory={handleViewHistory}
         onViewTutorial={() => setView('tutorial')}
         onLogout={handleLogout}
+        isAdmin={userRole === 'admin'}
       />
     );
   }
@@ -207,6 +218,7 @@ function GameContainer() {
   if ((view === 'result' || view === 'history') && resultData) {
     return <ResultsPage data={resultData} onRestart={restart} />;
   }
+
 
   return <div>Loading...</div>;
 }

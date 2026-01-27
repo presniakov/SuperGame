@@ -4,6 +4,7 @@ import type { SpawnEvent, SpriteData, GameStyle } from '../types';
 
 interface RenderSprite extends SpriteData {
     timestamp: number; // local start time
+    size?: number;
 }
 
 const LETTER_COLORS = ['#ff0000', '#00ff00', '#0000ff', '#ffff00', '#ff00ff', '#00ffff'];
@@ -13,6 +14,14 @@ export default function GameCanvas({ socket, onAbort, style = 'cyber' }: { socke
     const [countdown, setCountdown] = useState<number | null>(null);
     const spritesRef = useRef<RenderSprite[]>([]);
     const requestRef = useRef<number>(0);
+
+    // Timing & State Refs
+    const sessionStartRef = useRef<number>(0);
+    const lastEventEndRef = useRef<number>(0);
+    const eventStartRef = useRef<number>(0);
+    const eventIdRef = useRef<string>('');
+    const resultsRef = useRef<{ spriteId: string, result: 'hit' | 'miss' | 'wrong', letter: string }[]>([]);
+    const totalSpritesInEventRef = useRef<number>(0);
 
 
     const [dimensions, setDimensions] = useState({ width: 800, height: 600 });
@@ -53,6 +62,9 @@ export default function GameCanvas({ socket, onAbort, style = 'cyber' }: { socke
                 if (cur <= 0) {
                     clearInterval(int);
                     setCountdown(null);
+                    // Session Starts
+                    sessionStartRef.current = Date.now();
+                    lastEventEndRef.current = Date.now(); // Initialize
                 } else {
                     setCountdown(cur);
                 }
@@ -60,11 +72,28 @@ export default function GameCanvas({ socket, onAbort, style = 'cyber' }: { socke
         });
 
         socket.on('spawn_sprite', (event: SpawnEvent) => {
-            // Event contains 'sprites' array
             const now = Date.now();
-            event.sprites.forEach(s => {
-                spritesRef.current.push({ ...s, timestamp: now });
-            });
+            // Calculate when to start based on previous end time + delay
+            // If first event, delay might be applied to session start
+            const baseTime = lastEventEndRef.current || now;
+            const targetStartTime = baseTime + (event.delay || 0);
+            const waitTime = Math.max(0, targetStartTime - now);
+
+            setTimeout(() => {
+                // Start Event
+                eventStartRef.current = Date.now();
+                eventIdRef.current = event.eventId;
+                resultsRef.current = [];
+                totalSpritesInEventRef.current = event.sprites.length;
+
+                event.sprites.forEach(s => {
+                    spritesRef.current.push({
+                        ...s,
+                        timestamp: Date.now(),
+                        size: event.size
+                    });
+                });
+            }, waitTime);
         });
 
         socket.emit('start_game');
@@ -74,6 +103,30 @@ export default function GameCanvas({ socket, onAbort, style = 'cyber' }: { socke
             socket.off('spawn_sprite');
         };
     }, [socket]);
+
+    const checkEventCompletion = () => {
+        // Check if we have results for all sprites OR if a 'wrong' result terminated the event early?
+        // Logic: specific sprites are removed on hit/miss.
+        // If spritesRef is empty, event is done.
+
+        if (spritesRef.current.length === 0) {
+            const endTime = Date.now();
+            const payload = {
+                eventId: eventIdRef.current,
+                results: resultsRef.current,
+                startTime: eventStartRef.current - sessionStartRef.current,
+                endTime: endTime - sessionStartRef.current
+            };
+
+            lastEventEndRef.current = endTime;
+            socket?.emit('event_completed', payload);
+        }
+    };
+
+    const handleResult = (result: 'hit' | 'miss' | 'wrong', letter: string, spriteId: string = '') => {
+        resultsRef.current.push({ spriteId, result, letter });
+        checkEventCompletion();
+    };
 
     // Input Handling
     useEffect(() => {
@@ -113,13 +166,12 @@ export default function GameCanvas({ socket, onAbort, style = 'cyber' }: { socke
                 // If I hit valid letter, I hide it locally.
                 const sprite = spritesRef.current[hitIndex];
                 spritesRef.current.splice(hitIndex, 1);
-                socket?.emit('submit_result', { result: 'hit', letter: key, spriteId: sprite.id });
+                handleResult('hit', key, sprite.id);
             } else {
                 // Wrong key press (not in ANY active sprite)
-                // "event is ended with failure"
                 // Clear local sprites to visually end event immediately
                 spritesRef.current = [];
-                socket?.emit('submit_result', { result: 'wrong', letter: key });
+                handleResult('wrong', key);
             }
         };
 
@@ -149,13 +201,13 @@ export default function GameCanvas({ socket, onAbort, style = 'cyber' }: { socke
 
                 // Bounds Check: Vertical or Horizontal
                 // Vertical bounds: starts at -100 (or above 0) and goes down. Bound when > 100 + margin.
-                // Horizontal bounds: -20 to 120.
-                if (posX < -20 || posX > 120 || posY > 120 || posY < -50) {
+                // Relaxed upper bound to -200 to allow for double events where second letter starts high.
+                if (posX < -20 || posX > 120 || posY > 120 || posY < -200) {
                     // Note: posY < -50 allows for pre-spawn delay of second char in double pair if offset vertically
                     // But our logic spawns them at same time with spatial offset.
 
                     toRemove.push(index);
-                    socket?.emit('submit_result', { result: 'miss', letter: sprite.letter, spriteId: sprite.id });
+                    handleResult('miss', sprite.letter, sprite.id);
                 }
 
                 // Draw using dynamic dimensions
@@ -166,20 +218,23 @@ export default function GameCanvas({ socket, onAbort, style = 'cyber' }: { socke
                 ctx.save();
                 if (style === 'steam') {
                     // Steam Logic: Typewriter font, Bronze color, Heavy shadow
-                    ctx.font = "bold 50px 'Courier New', monospace";
+                    const fontSize = sprite.size || 50;
+                    ctx.font = `bold ${fontSize}px 'Courier New', monospace`;
                     ctx.fillStyle = "#d97706"; // Bronze/Amber
                     ctx.shadowColor = "#000";
                     ctx.shadowBlur = 4;
                     ctx.fillText(sprite.letter, px, py + 30);
                 } else if (style === 'cyber') {
-                    ctx.font = "bold 60px 'Segoe UI', sans-serif";
+                    const fontSize = sprite.size || 60;
+                    ctx.font = `bold ${fontSize}px 'Segoe UI', sans-serif`;
                     ctx.fillStyle = "#fff";
                     ctx.shadowColor = LETTER_COLORS[sprite.letter.charCodeAt(0) % LETTER_COLORS.length];
                     ctx.shadowBlur = 20;
                     ctx.fillText(sprite.letter, px, py + 30);
                 } else if (style === 'hi-tech') {
                     // Hi-Tech / Clean Text
-                    ctx.font = "500 40px 'Rajdhani', sans-serif";
+                    const fontSize = sprite.size || 40;
+                    ctx.font = `500 ${fontSize}px 'Rajdhani', sans-serif`;
                     ctx.fillStyle = "#0f172a";
                     ctx.fillText(sprite.letter, px, py + 30);
                 }

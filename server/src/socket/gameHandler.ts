@@ -26,14 +26,13 @@ export default function gameHandler(io: Server, socket: Socket) {
         }, 3000);
     });
 
-    socket.on('submit_result', (data) => {
+    socket.on('event_completed', (data) => {
         const session = sessions[socket.id];
         if (!session) return;
 
         const emitSpawn = (event: any) => socket.emit('spawn_sprite', event);
 
-        // processResult now handles history logging internally
-        session.processResult(data, emitSpawn);
+        session.processEventBatch(data, emitSpawn);
     });
 
     socket.on('abort_game', () => {

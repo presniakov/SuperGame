@@ -6,6 +6,7 @@ export interface IUser extends Document {
     preferences: {
         theme: string;
     };
+    role: 'user' | 'admin';
 }
 
 const UserSchema: Schema = new Schema({
@@ -13,6 +14,11 @@ const UserSchema: Schema = new Schema({
     password: { type: String, required: true },
     preferences: {
         theme: { type: String, default: 'cyber' }
+    },
+    role: {
+        type: String,
+        enum: ['user', 'admin'],
+        default: 'user'
     }
 });
 

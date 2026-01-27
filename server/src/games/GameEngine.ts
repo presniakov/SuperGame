@@ -45,7 +45,7 @@ export class GameSession {
         // Start countdown or just start loop? 
         // Logic assumes countdown handled by handler. 
         // We trigger first spawn.
-        this.scheduleNextEvent(emitSpawn, 0);
+        this.triggerNextSpawn(emitSpawn);
 
         // End game timer
         setTimeout(() => {
@@ -53,20 +53,18 @@ export class GameSession {
         }, this.duration);
     }
 
-    private scheduleNextEvent(emitSpawn: (event: any) => void, delay: number) {
+    // Simplified: Just trigger immediate generation. Client handles delays.
+    private triggerNextSpawn(emitSpawn: (event: any) => void) {
         if (!this.isActive) return;
-
-        this.eventTimeout = setTimeout(() => {
-            const event = this.generateSpawn();
-            // Track active sprites
-            this.activeSprites = event.sprites.map(s => ({ id: s.id, letter: s.letter, active: true }));
-            emitSpawn(event);
-        }, delay);
+        const event = this.generateSpawn();
+        // Track active sprites (snapshot for validation if needed, though batch validation differs)
+        this.activeSprites = event.sprites.map(s => ({ id: s.id, letter: s.letter, active: true }));
+        emitSpawn(event);
     }
 
     private generateSpawn() {
         // Determine type: Single/Double (start with 50/50 or adaptive?)
-        // Let's make it random for now.
+        // Determine type: Single/Double (start with 50/50 or adaptive?)
         const isDouble = Math.random() > 0.5;
 
         const type = isDouble ? 'double' : 'single';
@@ -79,36 +77,61 @@ export class GameSession {
 
         const l1 = this.targetLetters[Math.floor(Math.random() * this.targetLetters.length)];
 
-        // Base X (keep within bounds 0-100 minus margins)
-        // Margin ~10
-        const startX = 10 + Math.random() * 80;
+        // Base X (keep within bounds)
+        // Fixed size 350px.
+        // Assume reference resolution 1920x1080 for coordinate conversion 0-100 logic.
+        // 350px width is approx 18.2% of 1920.
+        // 350px height is approx 32.4% of 1080.
+        const REF_WIDTH = 1920;
+        const REF_HEIGHT = 1080;
+        const SIZE_PX = 350;
+
+        const SIZE_X = (SIZE_PX / REF_WIDTH) * 100; // ~18.2
+        const SIZE_Y = (SIZE_PX / REF_HEIGHT) * 100; // ~32.4
+
+        const GAP_RATIO = 1 / 3;
+        const GAP_X = SIZE_X * GAP_RATIO; // ~6
+        const DIST_Y = SIZE_Y - (SIZE_Y * GAP_RATIO); // ~43 (Size + Gap) for "following"
+
+        // Total width of double event = SIZE_X + GAP_X + SIZE_X = ~42.4 units
+        const DOUBLE_WIDTH = (2 * SIZE_X) + GAP_X;
+
+        // Margin 2%
+        // Max StartX = 100 - Margin - width (if double) or width (if single)
+        // If single, width is SIZE_X.
+
+        const margin = 2;
+        let maxStart = 100 - margin - SIZE_X;
+        if (type === 'double') {
+            maxStart = 100 - margin - DOUBLE_WIDTH;
+        }
+
+        // Ensure maxStart > margin
+        maxStart = Math.max(margin, maxStart);
+
+        const startX = margin + Math.random() * (maxStart - margin);
 
         if (type === 'single') {
-            // Random direction or Top-Down? User said "single event is a single letter". 
-            // Didn't strictly enforce Top-Down for single, but "double event is top-down ONLY".
-            // Let's keep single random direction for variety as originally implemented, 
-            // OR make it Top-Down too for consistency. 
-            // User: "double event is two letters moving in the same top-down only direction".
-            // Implies single might be different. Let's stick to Top-Down for consistency with "dropping letters" genre unless specified.
-            // Actually, original design was "moving randomly".
-            // Let's mix it: Single = Random, Double = Top-Down (Strict).
+            // Simplify Single to always random direction or Top-Down?
+            // "one letter for 'single' event" - logic exists. 
+            // Previous code had "isVertical" random. Keep it or force top-down?
+            // "the 'two-letters' event is always top-down" implies single might not be.
+            // Keeping single as is, but updating startX/bounds logic if needed.
+            // Actually, keep single "random direction" logic but ensure bounds.
 
             const isVertical = Math.random() > 0.5;
-            // If random direction:
-            // Top->Down, Bottom->Up, Left->Right, Right->Left
-            // Simplified: Vertical top-down or Horizontal L->R
 
             let vx = 0, vy = 0;
-            let sx = startX, sy = -10;
+            let sx = startX, sy = -20; // Start higher due to large size
 
             if (isVertical) {
                 vy = this.currentSpeed;
-                sy = -10;
+                sy = -SIZE_Y; // Start fully off-screen
             } else {
                 vx = (Math.random() > 0.5 ? 1 : -1) * this.currentSpeed;
-                vy = (Math.random() - 0.5) * this.currentSpeed * 0.5; // slight wobble
-                sy = 10 + Math.random() * 80;
-                sx = vx > 0 ? -10 : 110;
+                vy = (Math.random() - 0.5) * this.currentSpeed * 0.5;
+                sy = 10 + Math.random() * 60; // Random height for horizontal flyer
+                sx = vx > 0 ? -SIZE_X : 100;
             }
 
             sprites.push({
@@ -122,141 +145,134 @@ export class GameSession {
 
         } else {
             // Double: Top-Down Only
-            const l2 = this.targetLetters[Math.floor(Math.random() * this.targetLetters.length)];
+            let l2 = l1;
+            if (this.targetLetters.length > 1) {
+                //do {
+                l2 = this.targetLetters[Math.floor(Math.random() * this.targetLetters.length)];
+                //} while (l2 === l1);
+            }
 
-            // Letter 1
+            // Letter 1 (Leader - Lower / First)
             sprites.push({
                 id: uuidv4(),
                 letter: l1,
                 startX: startX,
-                startY: -10,
+                startY: -SIZE_Y, // Start just off screen
                 velocityX: 0,
                 velocityY: this.currentSpeed
             });
 
-            // Letter 2 (Offset and Distance)
+            // Letter 2 (Follower - Higher / Second)
+            // "horizontal gap of 1/3" -> Offset X by SIZE + GAP
+            // "vertical direction... follow... distance 1/3" -> Offset Y by -(SIZE + GAP)
+
             sprites.push({
                 id: uuidv4(),
                 letter: l2,
-                startX: startX + DOUBLE_OFFSET_X,
-                startY: -10 - DOUBLE_DISTANCE_Y,
+                startX: startX + SIZE_X + GAP_X,
+                startY: -SIZE_Y - DIST_Y,
                 velocityX: 0,
                 velocityY: this.currentSpeed
             });
         }
+
+        // Random delay 300ms - 1000ms
+        const delay = 300 + Math.floor(Math.random() * 700);
 
         return {
             eventId,
             type,
-            sprites
+            sprites,
+            size: 350,
+            delay
         };
     }
 
-    public processResult(
-        data: { result: 'hit' | 'miss' | 'wrong', letter: string, spriteId?: string },
+    public processEventBatch(
+        data: {
+            eventId: string,
+            results: { spriteId: string, result: 'hit' | 'miss' | 'wrong', letter: string }[],
+            startTime: number,
+            endTime: number
+        },
         emitSpawn: (event: any) => void
     ) {
         if (!this.isActive) return;
 
-        let { result, letter, spriteId } = data;
-        const timeOffset = Date.now() - this.startTime;
+        // Process the batch
+        // We assume strict sequentiality: correct keys in correct order if Double.
+        // Or we just trust the client's result report? 
+        // For security, verifying against this.activeSprites is good, but user wants flow fix first.
+        // Let's iterate and score.
 
-        // Sort active sprites by Y position (descending) to determine "first appeared" (effectively bottom-most)
-        // Since they move Top-Down, larger Y means "more active" / "appeared earlier".
-        // Use a small epsilon for float comparison if needed, but strict sort is fine.
+        // Strict Sequention Order Check
+        // The results must correspond to the sprites in the order they were generated (activeSprites are ordered).
+        // If results[0] processes sprite[1], it's a failure.
+        // We expect index 0, then 1...
 
-        // Filter only currently active sprites
-        const active = this.activeSprites.filter(s => s.active);
+        let expectedIndex = 0;
+        let batchFailed = false;
 
-        if (active.length === 0) return; // Event already finished or processing
+        for (const item of data.results) {
+            const { result, letter, spriteId } = item;
+            const timeOffset = data.endTime;
 
-        // Simulate positions? 
-        // We don't track exact Y on server continuously. 
-        // But we know relative order never changes if velocities are identical (Double Event).
-        // For Single event, it's just one.
-        // For Double event, Sprite 1 (first pushed) was at Y=-10, Sprite 2 at Y=-25.
-        // So Sprite 1 is always "ahead" (larger Y).
-        // Therefore, expected order is the order they were pushed to activeSprites array? 
-        // My generateSpawn pushed: letter 1 (Y=-10) THEN letter 2 (Y=-25).
-        // So index 0 is always the target.
-
-        const expectedSprite = active[0];
-
-        // Validation Logic
-        let isValidHit = false;
-
-        if (result === 'wrong') {
-            // "Wrong key press" -> Fail Event immediately
-            isValidHit = false;
-        } else if (result === 'hit') {
-            // check if correct letter AND correct order
-            if (letter === expectedSprite.letter && (!spriteId || spriteId === expectedSprite.id)) {
-                isValidHit = true;
-            } else {
-                // Good letter but wrong order (or wrong sprite if duplicates) -> Fail Event
-                isValidHit = false;
-                result = 'wrong'; // escalate to wrong (penalty)
+            // Find which sprite this result is for
+            // Note: 'wrong' result has no spriteId usually, or we match by letter? 
+            // If 'wrong', it's a failure immediately.
+            if (result === 'wrong') {
+                this.score = Math.max(0, this.score - 5);
+                this.currentSpeed = Math.max(5, this.currentSpeed - 0.5);
+                this.history.push({ result: 'wrong', letter, speed: this.currentSpeed, timeOffset });
+                batchFailed = true;
+                break;
             }
-        } else if (result === 'miss') {
-            // Miss is just a miss of that specific sprite. 
-            // If we missed the first one, the second one might still be active?
-            // "next event does not occur until previous has finished".
-            // If sprite 1 missed, it is removed. Sprite 2 becomes head of queue? 
-            // User: "The next event does not occures until the previous has finished".
-            // Standard logic: just mark this sprite as missed/inactive.
-            // But if we missed the *first* one, is the second one still playable? 
-            // Usually yes.
-            isValidHit = false; // it's a miss, not a hit
+
+            const spriteIndex = this.activeSprites.findIndex(s => s.id === spriteId);
+
+            if (spriteIndex === -1) {
+                // Should not happen for valid sprites. Maybe older event reference?
+                // Treat as wrong.
+                this.score = Math.max(0, this.score - 5);
+                this.history.push({ result: 'wrong', letter, speed: this.currentSpeed, timeOffset });
+                batchFailed = true;
+                break;
+            }
+
+            if (spriteIndex !== expectedIndex) {
+                // Out of order! 
+                // E.g. processed sprite 1 before sprite 0.
+                // Fail the event.
+                this.score = Math.max(0, this.score - 5);
+                this.currentSpeed = Math.max(5, this.currentSpeed - 0.5);
+                this.history.push({ result: 'wrong', letter: `Order mismatch: Expected ${this.activeSprites[expectedIndex].letter}, Got ${letter}`, speed: this.currentSpeed, timeOffset });
+                batchFailed = true;
+                break;
+            }
+
+            // Correct order so far
+            if (result === 'hit') {
+                this.score += 10;
+                this.currentSpeed = Math.min(this.currentSpeed + 0.5, 50);
+                this.history.push({ result: 'hit', letter, speed: this.currentSpeed, timeOffset });
+            } else {
+                // Miss
+                this.score = Math.max(0, this.score - 5);
+                this.currentSpeed = Math.max(5, this.currentSpeed - 0.5);
+                this.history.push({ result: 'miss', letter, speed: this.currentSpeed, timeOffset });
+            }
+
+            expectedIndex++;
         }
 
-        // Apply Outcome
-        if (isValidHit) {
-            // Success
-            this.history.push({ result: 'hit', letter, speed: this.currentSpeed, timeOffset });
-            this.score += 10;
-            this.currentSpeed = Math.min(this.currentSpeed + 0.5, 50);
-
-            // Mark SPECIFIC sprite inactive
-            const targetIdx = this.activeSprites.findIndex(s => s.id === expectedSprite.id);
-            if (targetIdx !== -1) this.activeSprites[targetIdx].active = false;
-
-        } else if (result === 'miss') {
-            // Just a miss (ran off screen)
-            this.history.push({ result: 'miss', letter: expectedSprite.letter, speed: this.currentSpeed, timeOffset });
-            this.score = Math.max(0, this.score - 5);
-            this.currentSpeed = Math.max(5, this.currentSpeed - 0.5);
-
-            // Remove the missed sprite
-            // (Client sent miss for specific letter/id usually)
-            // If client sent miss for `letter`, find it.
-            // CAREFUL: Client sends "miss" when sprite bounds exit. 
-            // That might happen to sprite 2 while sprite 1 is still on screen? (Unlikely in double top-down if different Y).
-            // Actually, sprite 1 exits first. 
-            // So if we get a miss, it should correspond to expectedSprite.
-
-            const targetIdx = this.activeSprites.findIndex(s => s.id === (spriteId || expectedSprite.id));
-            if (targetIdx !== -1) this.activeSprites[targetIdx].active = false;
-
-        } else {
-            // WRONG KEY or Out of Order -> Fail ENTIRE Event
-            // End all active sprites in this event
-            this.history.push({ result: 'wrong', letter: letter || '?', speed: this.currentSpeed, timeOffset });
-            this.score = Math.max(0, this.score - 5);
-            this.currentSpeed = Math.max(5, this.currentSpeed - 0.5);
-
-            // Mark ALL inactive to trigger end of event
-            this.activeSprites.forEach(s => s.active = false);
-            // Optionally emit 'force_clear' to client? 
-            // Client will just see new spawn eventually? 
-            // Or client needs to know to wipe sprites? 
-            // User didn't specify, but "event ended with failure" implies we stop waiting.
+        if (batchFailed) {
+            // If failed mid-batch, we might want to log remaining as skipped or just create next event?
+            // The loop broke, so we stop processing.
+            // Punishment already applied.
         }
 
-        // Check if event complete
-        if (this.activeSprites.every(s => !s.active)) {
-            const randomDelay = 250 + Math.random() * 950;
-            this.scheduleNextEvent(emitSpawn, randomDelay);
-        }
+        // Trigger next event immediately
+        this.triggerNextSpawn(emitSpawn);
 
         return { score: this.score };
     }
