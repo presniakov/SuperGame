@@ -180,39 +180,23 @@ export default function GameCanvas({ socket, onAbort, style = 'cyber', duration 
             }
 
             if (countdown !== null) return; // Ignore during countdown
+            if (spritesRef.current.length === 0) return; // No active sprites
 
             const key = e.key.toUpperCase();
 
-            // Find matching sprite
-            const hitIndex = spritesRef.current.findIndex(s => s.letter === key);
+            // STRICT SEQUENTIAL CHECK
+            // Always check against the FIRST falling sprite (index 0)
+            // (Since sprites are pushed in generation order, 0 is the "leader")
+            const targetSprite = spritesRef.current[0];
 
-            if (hitIndex >= 0) {
-                // If we found a letter match, we MUST check if it's the expected one?
-                // Server enforces order. Client just optimizes.
-                // But if user hits "B" (second) instead of "A" (first), server fails event.
-                // Client should probably just send it and let server decide? 
-                // But wait, if server ends event, client needs to know to clear sprites.
-                // Maybe server sends "game_update" or we just clear on "wrong"?
-                // The prompt says "event is ended with failure". 
-                // Let's optimistic clear on any "wrong" detection (no match).
-                // What if match found but wrong order? 
-                // We don't know strict order client-side easily without duplicating logic.
-                // Let's just send 'hit' if valid chars. 
-                // IF server decides it's WRONG order, it fails. 
-                // WE need to respond to that? 
-                // We need a 'clear_sprites' event from server OR we just clear on next spawn?
-                // Clearing on next spawn (in my previous code, I do NOT clear on spawn, I append).
-                // I should probably clear on 'wrong' detection locally.
-
-                // Let's trust strict server. 
-                // If I hit valid letter, I hide it locally.
-                const sprite = spritesRef.current[hitIndex];
-                spritesRef.current.splice(hitIndex, 1);
-                handleResult('hit', key, sprite.id);
+            if (targetSprite.letter === key) {
+                // Correct Hit on First Sprite
+                spritesRef.current.splice(0, 1); // Remove it
+                handleResult('hit', key, targetSprite.id);
             } else {
-                // Wrong key press (not in ANY active sprite)
-                // Clear local sprites to visually end event immediately
-                spritesRef.current = [];
+                // Wrong Key OR Trying to hit valid 2nd letter out of order
+                // "End event with result wrong"
+                spritesRef.current = []; // Clear all to stop visual processing
                 handleResult('wrong', key);
             }
         };
@@ -233,36 +217,49 @@ export default function GameCanvas({ socket, onAbort, style = 'cyber', duration 
             ctx.clearRect(0, 0, dimensions.width, dimensions.height);
 
             const now = Date.now();
-            const toRemove: number[] = [];
+            let eventFailed = false;
 
-            spritesRef.current.forEach((sprite, index) => {
+            // 1. UPDATE & CHECK BOUNDS
+            // If ANY sprite goes out of bounds, the whole event fails immediately.
+            for (let i = 0; i < spritesRef.current.length; i++) {
+                const sprite = spritesRef.current[i];
                 const dt = (now - sprite.timestamp) / 1000;
 
+                // Calculate current position for check
                 const posX = sprite.startX + sprite.velocityX * dt;
                 const posY = sprite.startY + sprite.velocityY * dt;
 
-                // Bounds Check: Vertical or Horizontal
-                // Vertical bounds: starts at -100 (or above 0) and goes down. Bound when > 100 + margin.
-                // Relaxed upper bound to -200 to allow for double events where second letter starts high.
+                // Bounds Check
+                // Vertical bounds: starts negative, falls positive. Miss if > 120.
                 if (posX < -20 || posX > 120 || posY > 120 || posY < -200) {
-                    // Note: posY < -50 allows for pre-spawn delay of second char in double pair if offset vertically
-                    // But our logic spawns them at same time with spatial offset.
-
-                    toRemove.push(index);
-                    handleResult('miss', sprite.letter, sprite.id);
+                    eventFailed = true;
+                    break;
                 }
+            }
 
-                // Draw using dynamic dimensions
+            if (eventFailed) {
+                spritesRef.current = []; // Clear all visuals immediately
+                handleResult('miss', 'ANY'); // Result 'miss' ends event
+                // Stop this frame
+                requestRef.current = requestAnimationFrame(animate);
+                return;
+            }
+
+            // 2. DRAW (Only if not failed)
+            spritesRef.current.forEach((sprite) => {
+                const dt = (now - sprite.timestamp) / 1000;
+                const posX = sprite.startX + sprite.velocityX * dt;
+                const posY = sprite.startY + sprite.velocityY * dt;
+
                 const px = (posX / 100) * dimensions.width;
                 const py = (posY / 100) * dimensions.height;
 
                 // RENDERING LOGIC
                 ctx.save();
                 if (style === 'steam') {
-                    // Steam Logic: Typewriter font, Bronze color, Heavy shadow
                     const fontSize = sprite.size || 50;
                     ctx.font = `bold ${fontSize}px 'Courier New', monospace`;
-                    ctx.fillStyle = "#d97706"; // Bronze/Amber
+                    ctx.fillStyle = "#d97706";
                     ctx.shadowColor = "#000";
                     ctx.shadowBlur = 4;
                     ctx.fillText(sprite.letter, px, py + 30);
@@ -274,7 +271,6 @@ export default function GameCanvas({ socket, onAbort, style = 'cyber', duration 
                     ctx.shadowBlur = 20;
                     ctx.fillText(sprite.letter, px, py + 30);
                 } else if (style === 'hi-tech') {
-                    // Hi-Tech / Clean Text
                     const fontSize = sprite.size || 40;
                     ctx.font = `500 ${fontSize}px 'Rajdhani', sans-serif`;
                     ctx.fillStyle = "#0f172a";
@@ -282,14 +278,6 @@ export default function GameCanvas({ socket, onAbort, style = 'cyber', duration 
                 }
                 ctx.restore();
             });
-
-            for (let i = toRemove.length - 1; i >= 0; i--) {
-                spritesRef.current.splice(toRemove[i], 1);
-            }
-
-            if (toRemove.length > 0) {
-                checkEventCompletion();
-            }
 
             requestRef.current = requestAnimationFrame(animate);
         };
