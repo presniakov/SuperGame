@@ -1,159 +1,215 @@
-import { Chart as ChartJS, LinearScale, PointElement, LineElement, Tooltip, Legend, CategoryScale, Filler } from 'chart.js';
+import { useState, useEffect, useMemo } from 'react';
+import { ArrowLeft, TrendingUp, Calendar } from 'lucide-react';
+import {
+    Chart as ChartJS,
+    CategoryScale,
+    LinearScale,
+    PointElement,
+    LineElement,
+    Title,
+    Tooltip,
+    Legend
+} from 'chart.js';
 import { Scatter, Line } from 'react-chartjs-2';
-import { LayoutDashboard } from 'lucide-react';
-import { useState } from 'react';
-import type { GameResultData } from '../types';
+import type { IGameResult } from '../types';
 import './ResultsPage.css';
 
-ChartJS.register(LinearScale, PointElement, LineElement, Tooltip, Legend, CategoryScale, Filler);
+ChartJS.register(
+    CategoryScale,
+    LinearScale,
+    PointElement,
+    LineElement,
+    Title,
+    Tooltip,
+    Legend
+);
 
-export default function ResultsPage({ data, onRestart }: { data: GameResultData, onRestart: () => void }) {
-    // 1. Scatter Data (Speed vs Time)
-    const successPoints = data.history.filter(e => e.result === 'hit').map(e => ({ x: e.timeOffset / 1000, y: e.speed, letter: e.letter }));
-    const failPoints = data.history.filter(e => e.result !== 'hit').map(e => ({ x: e.timeOffset / 1000, y: e.speed, letter: e.letter }));
+interface ResultsPageProps {
+    onBack: () => void;
+}
 
-    // 2. Score Progress Data (Demo / Approx)
-    let runningScore = 0;
-    // Create a demo progression based on history or just mock points if "fake" is strictly requested.
-    // Let's use the history-based approximation as it serves as a good "demo" of what the score looked like.
-    const sortedHistory = [...data.history].sort((a, b) => a.timeOffset - b.timeOffset);
-    const scorePoints = sortedHistory.map(e => {
-        if (e.result === 'hit') runningScore += (100 + (e.speed * 10));
-        else runningScore = Math.max(0, runningScore - 50);
-        return { x: e.timeOffset / 1000, y: runningScore };
-    });
-    scorePoints.unshift({ x: 0, y: 0 });
+export default function ResultsPage({ onBack }: ResultsPageProps) {
+    const [results, setResults] = useState<IGameResult[]>([]);
+    const [selectedResultId, setSelectedResultId] = useState<string | null>(null);
+    const [loading, setLoading] = useState(true);
+    const [activeTab, setActiveTab] = useState<'session' | 'progress'>('session');
 
-    const chartData = {
-        datasets: [
-            {
-                label: 'Success',
-                data: successPoints,
-                backgroundColor: '#22c55e',
-                pointRadius: 6,
-                pointHoverRadius: 8,
-                pointBorderColor: '#fff',
-                pointBorderWidth: 1
-            },
-            {
-                label: 'Failure',
-                data: failPoints,
-                backgroundColor: '#ef4444',
-                pointRadius: 6,
-                pointHoverRadius: 8,
-                pointBorderColor: '#fff',
-                pointBorderWidth: 1
+    useEffect(() => {
+        fetchHistory();
+    }, []);
+
+    const fetchHistory = async () => {
+        try {
+            const token = localStorage.getItem('token');
+            const apiUrl = import.meta.env.PROD ? '/api' : 'http://localhost:4000/api';
+            const res = await fetch(`${apiUrl}/user/history`, {
+                headers: { 'x-auth-token': token || '' }
+            });
+            if (res.ok) {
+                const data = await res.json();
+                setResults(data);
+                if (data.length > 0) {
+                    setSelectedResultId(data[0]._id);
+                }
             }
-        ]
+        } catch (err) {
+            console.error('Failed to fetch history', err);
+        } finally {
+            setLoading(false);
+        }
     };
 
-    const lineData = {
-        datasets: [
-            {
-                label: 'Score (Demo)',
-                data: scorePoints,
-                borderColor: '#d946ef',
-                backgroundColor: 'rgba(217, 70, 239, 0.2)',
-                tension: 0.3,
-                fill: true,
-                pointRadius: 0,
-                pointHoverRadius: 6
-            }
-        ]
-    };
+    const selectedResult = useMemo(() =>
+        results.find(r => r._id === selectedResultId) || null,
+        [results, selectedResultId]);
 
-    const commonOptions: any = {
+    // Graph 1: Event Log (Scatter)
+    const scatterData = useMemo(() => {
+        if (!selectedResult) return { datasets: [] };
+
+        const points = selectedResult.eventLog.map(e => ({
+            x: e.timeOffset,
+            y: e.speed,
+            result: e.result,
+            isDouble: e.eventType === 'double'
+        }));
+
+        return {
+            datasets: [{
+                label: 'Events',
+                data: points,
+                backgroundColor: (ctx: any) => {
+                    const raw = ctx.raw as any;
+                    if (!raw) return 'gray';
+                    // User requested: Orange for success, Red for failure
+                    return raw.result === 'hit' ? '#FFA500' : '#FF0000';
+                },
+                pointRadius: (ctx: any) => {
+                    const raw = ctx.raw as any;
+                    if (!raw) return 5;
+                    // User requested: "bold dot for double event" -> larger size
+                    return raw.isDouble ? 8 : 5;
+                },
+                pointBorderWidth: (ctx: any) => {
+                    const raw = ctx.raw as any;
+                    return raw && raw.isDouble ? 2 : 0;
+                },
+                borderColor: '#FFF',
+            }]
+        };
+    }, [selectedResult]);
+
+    // Graph 2: Score Progress (Line) - NOTE: Uses Max Speed as Score
+    const progressData = useMemo(() => {
+        // Sort chronological for line chart
+        const sorted = [...results].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+
+        return {
+            labels: sorted.map(r => new Date(r.date).toLocaleDateString()),
+            datasets: [{
+                label: 'Session Max Speed',
+                data: sorted.map(r => r.maxSpeed || 0), // Use maxSpeed as score
+                borderColor: '#00d4ff',
+                backgroundColor: 'rgba(0, 212, 255, 0.2)',
+                tension: 0.1
+            }]
+        };
+    }, [results]);
+
+    const scatterOptions = {
         responsive: true,
-        maintainAspectRatio: false,
         plugins: {
-            legend: { labels: { color: '#94a3b8', font: { family: 'Orbitron' } } },
+            legend: { display: false },
+            title: { display: true, text: 'Speed vs Time' },
             tooltip: {
                 callbacks: {
-                    label: (ctx: any) => {
-                        const pt = ctx.raw as any;
-                        if (ctx.dataset.label.includes('Score')) return `Score: ${Math.round(pt.y)}`;
-                        return `${ctx.dataset.label}: ${pt.letter} (Speed: ${pt.y.toFixed(1)})`;
+                    label: (context: any) => {
+                        const p = context.raw;
+                        return `${p.result.toUpperCase()} | Speed: ${p.y} | Time: ${p.x}ms`;
                     }
-                },
-                backgroundColor: 'rgba(15, 23, 42, 0.9)',
-                titleColor: '#00f3ff',
-                bodyColor: '#fff',
-                borderColor: '#00f3ff',
-                borderWidth: 1
+                }
             }
         },
         scales: {
-            x: {
-                type: 'linear',
-                title: { display: true, text: 'Time (s)', color: '#64748b' },
-                grid: { color: 'rgba(100, 116, 139, 0.1)' },
-                ticks: { color: '#64748b' }
-            },
-            y: {
-                grid: { color: 'rgba(100, 116, 139, 0.1)' },
-                ticks: { color: '#64748b' }
-            }
+            x: { title: { display: true, text: 'Time (ms)' } },
+            y: { title: { display: true, text: 'Speed' }, min: 0, max: 100 }
         }
     };
 
-    const scatterOptions = {
-        ...commonOptions,
-        scales: {
-            ...commonOptions.scales,
-            y: { ...commonOptions.scales.y, title: { display: true, text: 'Speed (%)', color: '#64748b' } }
+    const progressOptions = {
+        responsive: true,
+        plugins: {
+            legend: { display: false },
+            title: { display: true, text: 'Progress (Max Speed)' }
         }
     };
 
-    const lineOptions = {
-        ...commonOptions,
-        scales: {
-            ...commonOptions.scales,
-            y: { ...commonOptions.scales.y, title: { display: true, text: 'Points', color: '#64748b' } }
-        }
-    };
-
-    const [subView, setSubView] = useState<'performance' | 'score'>('performance');
+    if (loading) return <div className="loading-screen">Loading History...</div>;
 
     return (
         <div className="results-page">
-            <div className="results-header">
-                <h1>Game Results</h1>
-                <h2>Final Score: {data.score}</h2>
-            </div>
-
-            <div className="chart-container">
-                {subView === 'performance' ? (
-                    <>
-                        {/* <h3>Performance</h3> */}
-                        <div style={{ position: 'relative', width: '100%', flex: 1 }}>
-                            <Scatter data={chartData} options={scatterOptions} />
-                        </div>
-                    </>
-                ) : (
-                    <>
-                        {/* <h3>Score Progress (Demo)</h3> */}
-                        <div style={{ position: 'relative', width: '100%', flex: 1 }}>
-                            <Line data={lineData} options={lineOptions} />
-                        </div>
-                    </>
-                )}
-            </div>
-
-            <div className="results-actions">
-                {subView === 'performance' ? (
-                    <button onClick={() => setSubView('score')} className="secondary-btn">
-                        View Score Progress
-                    </button>
-                ) : (
-                    <button onClick={() => setSubView('performance')} className="secondary-btn">
-                        Back to Performance
-                    </button>
-                )}
-
-                <button onClick={onRestart} className="restart-btn dashboard-btn">
-                    <LayoutDashboard size={24} />
-                    Back to Dashboard
+            <header className="results-header">
+                <button onClick={onBack} className="back-btn">
+                    <ArrowLeft /> Back
                 </button>
+                <div className="header-tabs">
+                    <button
+                        className={`tab-btn ${activeTab === 'session' ? 'active' : ''}`}
+                        onClick={() => setActiveTab('session')}
+                    >
+                        Session Analysis
+                    </button>
+                    <button
+                        className={`tab-btn ${activeTab === 'progress' ? 'active' : ''}`}
+                        onClick={() => setActiveTab('progress')}
+                    >
+                        Progress History
+                    </button>
+                </div>
+            </header>
+
+            <div className="results-grid">
+                {activeTab === 'session' && (
+                    <>
+                        {/* Session Selector */}
+                        <div className="card control-card">
+                            <label><Calendar size={18} /> Select Session</label>
+                            <select
+                                value={selectedResultId || ''}
+                                onChange={(e) => setSelectedResultId(e.target.value)}
+                                className="session-select"
+                            >
+                                {results.map(r => (
+                                    <option key={r._id} value={r._id}>
+                                        {new Date(r.date).toLocaleString()} (Max: {r.maxSpeed})
+                                    </option>
+                                ))}
+                            </select>
+                        </div>
+
+                        {/* Main Scatter Plot */}
+                        <div className="card chart-card scatter-card">
+                            <div className="chart-wrapper">
+                                {selectedResult ? (
+                                    <Scatter options={scatterOptions} data={scatterData} />
+                                ) : (
+                                    <p className="no-data">No session selected</p>
+                                )}
+                            </div>
+                        </div>
+                    </>
+                )}
+
+                {activeTab === 'progress' && (
+                    <div className="card chart-card progress-card full-width">
+                        <div className="chart-header">
+                            <h2><TrendingUp /> Progress History</h2>
+                        </div>
+                        <div className="chart-wrapper">
+                            <Line options={progressOptions} data={progressData} />
+                        </div>
+                    </div>
+                )}
             </div>
         </div>
     );

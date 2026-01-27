@@ -340,16 +340,17 @@ export class GameSession {
             userId: this.userId, // ObjectId or string if simple
             score: this.score,
             letters: this.targetLetters,
+            maxSpeed: this.sessionMaxSpeed,
             eventLog: this.history,
             duration: totalDuration
         });
         result.save().catch(console.error);
 
         // Update User Statistics
-        this.updateUserStatistics(totalDuration).catch(console.error);
+        this.updateUserStatistics(totalDuration, result).catch(console.error);
     }
 
-    private async updateUserStatistics(totalDuration: number) {
+    private async updateUserStatistics(totalDuration: number, gameResult: any) {
         if (!this.userId) return;
 
         try {
@@ -368,7 +369,16 @@ export class GameSession {
             const errorRateFirst23 = calculateErrorRate(eventsFirst23);
             const errorRateLast13 = calculateErrorRate(eventsLast13);
 
-            // Fetch current user logic to check global max
+            // Update GameResult with stats
+            gameResult.statistics = {
+                startSpeed: this.startSpeed,
+                maxSpeed: this.sessionMaxSpeed,
+                errorRateFirst23,
+                errorRateLast13
+            };
+            await gameResult.save();
+
+            // Update Global User Stats
             const user = await User.findById(this.userId);
             if (!user) return;
 
@@ -376,12 +386,6 @@ export class GameSession {
             const newGlobalMax = Math.max(currentGlobalMax, this.sessionMaxSpeed);
 
             user.statistics = {
-                lastSession: {
-                    startSpeed: this.startSpeed,
-                    maxSpeed: this.sessionMaxSpeed,
-                    errorRateFirst23,
-                    errorRateLast13
-                },
                 global: {
                     maxSpeed: newGlobalMax
                 }

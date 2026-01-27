@@ -32,6 +32,8 @@ export interface GameHistoryEvent {
     letter: string;
     speed: number;
     timeOffset: number;
+    eventType?: 'single' | 'double';
+    eventDuration?: number;
 }
 
 export type GameStyle = 'cyber' | 'hi-tech' | 'steam';
@@ -40,4 +42,20 @@ export interface GameResultData {
     score: number;
     history: GameHistoryEvent[];
     username?: string;
+}
+
+export interface IGameResult {
+    _id: string;
+    userId: string;
+    date: string;
+    score: number;
+    maxSpeed: number;
+    statistics?: {
+        startSpeed: number;
+        maxSpeed: number;
+        errorRateFirst23: number;
+        errorRateLast13: number;
+    };
+    eventLog: GameHistoryEvent[];
+    duration: number;
 }

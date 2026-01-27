@@ -1,121 +1,156 @@
 .results-page {
-    height: 100vh;
-    width: 100vw;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    background-color: transparent;
-    /* Shows body grid */
-    color: var(--cyber-text);
+    min-height: 100vh;
     padding: 2rem;
-    box-sizing: border-box;
+    background: #0a0a1f;
+    color: #fff;
+    font-family: 'Inter', sans-serif;
 }
 
 .results-header {
-    text-align: center;
+    display: flex;
+    align-items: center;
+    gap: 2rem;
     margin-bottom: 2rem;
 }
 
-.results-header h1 {
-    font-size: 4rem;
-    margin: 0;
-    color: white;
-    text-shadow: 0 0 20px var(--neon-blue);
-}
-
-.results-header h2 {
-    font-size: 2.5rem;
-    margin: 0.5rem 0;
-    color: var(--neon-purple);
-    text-shadow: 0 0 10px rgba(139, 92, 246, 0.5);
-}
-
-/* Main Chart Container - Single View */
-.chart-container {
-    width: 90%;
-    max-width: 1000px;
-    height: 60vh;
-    background: rgba(15, 23, 42, 0.8);
-    backdrop-filter: blur(12px);
-    padding: 2rem;
-    border: 1px solid var(--neon-cyan);
-    box-shadow: 0 0 40px rgba(0, 243, 255, 0.1);
-    position: relative;
-    clip-path: polygon(30px 0, 100% 0,
-            100% calc(100% - 30px), calc(100% - 30px) 100%,
-            0 100%, 0 30px);
+.back-btn {
     display: flex;
-    flex-direction: column;
-}
-
-.results-actions {
-    display: flex;
-    gap: 1.5rem;
-    margin-top: 2rem;
     align-items: center;
-}
-
-.secondary-btn {
+    gap: 0.5rem;
     background: transparent;
-    color: var(--neon-purple);
-    border: 1px solid var(--neon-purple);
-    padding: 1rem 2rem;
-    font-size: 1rem;
+    border: 1px solid #333;
+    color: #aaa;
+    padding: 0.5rem 1rem;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.back-btn:hover {
+    border-color: #fff;
+    color: #fff;
+}
+
+/* Tabs */
+.header-tabs {
+    display: flex;
+    gap: 1rem;
+    background: #13132b;
+    padding: 0.25rem;
+    border-radius: 8px;
+    border: 1px solid #2a2a4a;
+}
+
+.tab-btn {
+    background: transparent;
+    border: none;
+    color: #aaa;
+    padding: 0.5rem 1rem;
+    border-radius: 6px;
+    cursor: pointer;
     font-weight: 600;
-    cursor: pointer;
-    transition: all 0.3s;
-    text-transform: uppercase;
-    font-family: 'Orbitron', monospace;
-    clip-path: polygon(10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0 10px);
+    transition: all 0.2s;
 }
 
-.secondary-btn:hover {
-    background: rgba(139, 92, 246, 0.1);
-    box-shadow: 0 0 15px rgba(139, 92, 246, 0.3);
-    transform: translateY(-2px);
+.tab-btn.active {
+    background: #00d4ff;
+    color: #0a0a1f;
 }
 
-.restart-btn {
-    margin: 0;
-    /* Reset margins since flex gap handles it */
-    background: linear-gradient(90deg, transparent, rgba(34, 197, 94, 0.2), transparent);
-    background-color: rgba(34, 197, 94, 0.1);
-    color: var(--neon-green);
-    border: 1px solid var(--neon-green);
-    padding: 1rem 2rem;
-    font-size: 1.1rem;
-    font-weight: 800;
-    cursor: pointer;
-    transition: all 0.3s;
-    text-transform: uppercase;
-    letter-spacing: 1px;
-    font-family: 'Orbitron', monospace;
-    clip-path: polygon(15px 0, 100% 0, 100% calc(100% - 15px), calc(100% - 15px) 100%, 0 100%, 0 15px);
+.tab-btn:hover:not(.active) {
+    color: #fff;
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.card {
+    background: #13132b;
+    border: 1px solid #2a2a4a;
+    border-radius: 12px;
+    padding: 1.5rem;
+}
+
+/* Control Card */
+.control-card {
+    grid-column: 1;
+    grid-row: 1;
+    /* Default to row 1 */
+    height: fit-content;
+}
+
+.control-card label {
     display: flex;
     align-items: center;
-    gap: 0.8rem;
+    gap: 0.5rem;
+    font-weight: 600;
+    margin-bottom: 1rem;
+    color: #00d4ff;
 }
 
-/* Hi-Tech Mode Overrides */
-[data-theme='hi-tech'] .chart-container {
-    background: #f8fafc;
-    /* Slate 50 */
-    border: 1px solid #cbd5e1;
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-    clip-path: none;
-    border-radius: 4px;
+.session-select {
+    width: 100%;
+    padding: 0.75rem;
+    background: #0a0a1f;
+    border: 1px solid #333;
+    border-radius: 8px;
+    color: #fff;
+    font-size: 0.9rem;
+    outline: none;
 }
 
-[data-theme='hi-tech'] .secondary-btn {
-    color: var(--neon-blue);
-    border-color: var(--neon-blue);
-    clip-path: none;
-    border-radius: 4px;
+.session-select:focus {
+    border-color: #00d4ff;
 }
 
-[data-theme='hi-tech'] .secondary-btn:hover {
-    background: rgba(14, 165, 233, 0.05);
-    box-shadow: none;
-    transform: translateY(-1px);
+.chart-card {
+    /* Grid placement handled by parent */
+}
+
+.scatter-card {
+    min-height: 400px;
+}
+
+.progress-card {
+    min-height: 300px;
+}
+
+.results-grid {
+    display: grid;
+    /* When progress tab is active, we might want a simple single column */
+    grid-template-columns: 300px 1fr;
+    grid-template-rows: auto;
+    gap: 1.5rem;
+    max-width: 1400px;
+    margin: 0 auto;
+}
+
+/* Adjustments for Progress Tab (Full Width) */
+.full-width {
+    grid-column: 1 / -1;
+    grid-row: 1;
+    min-height: 500px;
+    /* Taller for progress view */
+}
+
+.chart-header {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+    color: #aaa;
+}
+
+.chart-wrapper {
+    position: relative;
+    height: 100%;
+    width: 100%;
+    min-height: 300px;
+}
+
+.no-data {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    color: #666;
+    font-style: italic;
 }

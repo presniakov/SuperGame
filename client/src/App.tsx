@@ -9,8 +9,7 @@ import ComingSoonPage from './pages/ComingSoonPage';
 import type { GameResultData, GameStyle } from './types';
 import './App.css';
 
-// Lazy load Admin Dashboard (Code Splitting)
-// Lazy load Admin Dashboard (Code Splitting) - MOVED TO SEPARATE APP
+// Lazy load Admin Dashboard handled via separate app entry (admin.html)
 
 function GameContainer() {
   const [socket, setSocket] = useState<Socket | null>(null);
@@ -22,7 +21,7 @@ function GameContainer() {
   const [view, setView] = useState<'landing' | 'menu' | 'game' | 'result' | 'history' | 'tutorial' | 'coming-soon'>(
     isDevAccess ? 'landing' : 'coming-soon'
   );
-  const [resultData, setResultData] = useState<GameResultData | null>(null);
+  // resultData is no longer needed in App state as ResultsPage fetches history
   const [username, setUsername] = useState('');
   const [userRole, setUserRole] = useState<'user' | 'admin'>('user');
   const [gameStyle, setGameStyle] = useState<GameStyle>(() => {
@@ -88,7 +87,6 @@ function GameContainer() {
     setUsername(user);
     if (role) setUserRole(role);
 
-    // Enforce theme from profile, or default to 'cyber' to ensure isolation from previous user
     if (preferences?.theme) {
       setGameStyle(preferences.theme as GameStyle);
     } else {
@@ -100,10 +98,6 @@ function GameContainer() {
   const handleLogout = () => {
     localStorage.removeItem('token');
     localStorage.removeItem('username');
-    // We intentionally do NOT clear site-theme from localStorage here to keep the aesthetic
-    // consistent if the user just stays on the landing page.
-    // However, to ensure isolation, we reset the internal state to 'cyber' so that
-    // the next login starts fresh.
     setGameStyle('cyber');
     setUsername('');
     setUserRole('user');
@@ -111,7 +105,6 @@ function GameContainer() {
   };
 
   const handleStartGame = (letters: string[]) => {
-    // 1. Establish new connection
     const socketUrl = import.meta.env.PROD ? '/' : 'http://localhost:4000';
     const token = localStorage.getItem('token');
 
@@ -120,10 +113,8 @@ function GameContainer() {
     });
     setSocket(newSocket);
 
-    // 2. Setup Listeners
     newSocket.on('connect_error', (err) => {
       console.error('Socket connection error:', err.message);
-      // If unauthorized, log out
       if (err.message.includes('Authentication error')) {
         localStorage.removeItem('token');
         localStorage.removeItem('username');
@@ -135,7 +126,6 @@ function GameContainer() {
       }
     });
     newSocket.on('connect', () => {
-      // 3. Join Game
       newSocket.emit('join_game', { letters, userId: username });
     });
 
@@ -143,10 +133,9 @@ function GameContainer() {
       setView('game');
     });
 
-    newSocket.on('game_over', (data: GameResultData) => {
-      setResultData(data);
+    newSocket.on('game_over', () => {
+      // Navigate to 'result' view, which will load the ResultsPage (history)
       setView('result');
-      // Close connection on game over
       newSocket.disconnect();
       setSocket(null);
     });
@@ -161,27 +150,7 @@ function GameContainer() {
   };
 
   const handleViewHistory = () => {
-    // In a real app, fetch history. For now, use mock or last result.
-    if (!resultData) {
-      // Mock data if no recent game
-      setResultData({
-        score: 15600,
-        history: [
-          { timeOffset: 1000, speed: 20, result: 'hit', letter: 'A' },
-          { timeOffset: 2000, speed: 22, result: 'hit', letter: 'S' },
-          { timeOffset: 3000, speed: 25, result: 'miss', letter: 'A' },
-          { timeOffset: 4500, speed: 22, result: 'hit', letter: 'S' },
-          { timeOffset: 6000, speed: 24, result: 'hit', letter: 'A' },
-          { timeOffset: 7500, speed: 28, result: 'hit', letter: 'S' },
-          { timeOffset: 9000, speed: 32, result: 'hit', letter: 'A' }
-        ]
-      });
-    }
     setView('history');
-  };
-
-  const restart = () => {
-    setView('menu');
   };
 
   if (view === 'coming-soon') {
@@ -215,10 +184,9 @@ function GameContainer() {
     return <GameCanvas socket={socket} onAbort={handleAbort} style={gameStyle} />;
   }
 
-  if ((view === 'result' || view === 'history') && resultData) {
-    return <ResultsPage data={resultData} onRestart={restart} />;
+  if (view === 'result' || view === 'history') {
+    return <ResultsPage onBack={() => setView('menu')} />;
   }
-
 
   return <div>Loading...</div>;
 }

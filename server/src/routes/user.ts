@@ -1,6 +1,7 @@
 
 import express from 'express';
 import User, { IUser } from '../models/User';
+import GameResult from '../models/GameResult';
 import { auth } from '../middleware/auth'; // We'll need to export a REST-compatible auth middleware or reuse the socket one? Ideally separate.
 
 const router = express.Router();
@@ -40,6 +41,19 @@ router.put('/preferences', auth, async (req: any, res) => {
         res.json({ message: 'Preferences updated', preferences: user.preferences });
     } catch (error) {
         console.error('Error updating preferences:', error);
+        res.status(500).json({ message: 'Server error' });
+    }
+});
+
+// Get user game history
+router.get('/history', auth, async (req: any, res) => {
+    try {
+        const results = await GameResult.find({ userId: req.user.id })
+            .sort({ date: -1 })
+            .limit(50); // Limit to last 50 games for now
+        res.json(results);
+    } catch (error) {
+        console.error('Error fetching history:', error);
         res.status(500).json({ message: 'Server error' });
     }
 });
