@@ -6,7 +6,7 @@ import PersonalPage from './pages/PersonalPage';
 import ResultsPage from './pages/ResultsPage';
 import TutorialPage from './pages/TutorialPage';
 import ComingSoonPage from './pages/ComingSoonPage';
-import type { GameResultData, GameStyle } from './types';
+import type { GameStyle } from './types';
 import './App.css';
 
 // Lazy load Admin Dashboard handled via separate app entry (admin.html)
@@ -23,6 +23,8 @@ function GameContainer() {
   );
   // resultData is no longer needed in App state as ResultsPage fetches history
   const [username, setUsername] = useState('');
+  const [userId, setUserId] = useState(''); // Store Mongo _id
+  const [gameDuration, setGameDuration] = useState(180000); // in ms
   const [userRole, setUserRole] = useState<'user' | 'admin'>('user');
   const [gameStyle, setGameStyle] = useState<GameStyle>(() => {
     const saved = localStorage.getItem('site-theme');
@@ -44,6 +46,9 @@ function GameContainer() {
       })
         .then(res => res.json())
         .then(data => {
+          if (data._id) {
+            setUserId(data._id);
+          }
           if (data.preferences?.theme) {
             setGameStyle(data.preferences.theme as GameStyle);
           }
@@ -81,10 +86,11 @@ function GameContainer() {
     };
   }, [socket]);
 
-  const handleLoginSuccess = (user: string, token: string, preferences?: { theme: string }, role?: 'user' | 'admin') => {
+  const handleLoginSuccess = (id: string, user: string, token: string, preferences?: { theme: string }, role?: 'user' | 'admin') => {
     localStorage.setItem('token', token);
     localStorage.setItem('username', user);
     setUsername(user);
+    setUserId(id);
     if (role) setUserRole(role);
 
     if (preferences?.theme) {
@@ -100,6 +106,7 @@ function GameContainer() {
     localStorage.removeItem('username');
     setGameStyle('cyber');
     setUsername('');
+    setUserId('');
     setUserRole('user');
     setView('landing');
   };
@@ -126,10 +133,13 @@ function GameContainer() {
       }
     });
     newSocket.on('connect', () => {
-      newSocket.emit('join_game', { letters, userId: username });
+      newSocket.emit('join_game', { letters, userId: userId || username }); // Fallback to username if ID missing (shouldn't happen for logged in)
     });
 
-    newSocket.on('game_ready', () => {
+    newSocket.on('game_ready', (data: { duration: number }) => {
+      if (data && data.duration) {
+        setGameDuration(data.duration);
+      }
       setView('game');
     });
 
@@ -181,7 +191,7 @@ function GameContainer() {
   }
 
   if (view === 'game') {
-    return <GameCanvas socket={socket} onAbort={handleAbort} style={gameStyle} />;
+    return <GameCanvas socket={socket} onAbort={handleAbort} style={gameStyle} duration={gameDuration} />;
   }
 
   if (view === 'result' || view === 'history') {

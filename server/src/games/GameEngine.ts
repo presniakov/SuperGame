@@ -332,70 +332,82 @@ export class GameSession {
         onGameOver({
             score: this.score,
             history: this.history,
-            username: 'Player' // populated by handler or preserved
+            username: 'Player'
         });
 
-        // Save to DB (async, fire and forget)
+        // Create GameResult document but don't save yet
         const result = new GameResult({
-            userId: this.userId, // ObjectId or string if simple
+            userId: this.userId,
             score: this.score,
             letters: this.targetLetters,
             maxSpeed: this.sessionMaxSpeed,
             eventLog: this.history,
-            duration: totalDuration
+            duration: totalDuration,
+            date: new Date()
         });
-        result.save().catch(console.error);
 
-        // Update User Statistics
-        this.updateUserStatistics(totalDuration, result).catch(console.error);
+        // Calculate and save everything in one flow
+        this.saveGameData(totalDuration, result).catch(err => {
+            console.error(`[SERVER] Critical: Failed to save game data for user ${this.userId}:`, err);
+        });
     }
 
-    private async updateUserStatistics(totalDuration: number, gameResult: any) {
-        if (!this.userId) return;
+    private async saveGameData(totalDuration: number, gameResult: any) {
+        // 1. Calculate Statistics
+        const time23 = totalDuration * (2 / 3);
+        const eventsFirst23 = this.history.filter(h => h.timeOffset <= time23);
+        const eventsLast13 = this.history.filter(h => h.timeOffset > time23);
+
+        const calculateErrorRate = (events: any[]) => {
+            if (events.length === 0) return 0;
+            const errors = events.filter(e => e.result === 'miss' || e.result === 'wrong').length;
+            return (errors / events.length) * 100;
+        };
+
+        const errorRateFirst23 = calculateErrorRate(eventsFirst23);
+        const errorRateLast13 = calculateErrorRate(eventsLast13);
+
+        gameResult.statistics = {
+            startSpeed: this.startSpeed,
+            maxSpeed: this.sessionMaxSpeed,
+            errorRateFirst23,
+            errorRateLast13
+        };
+
+        // 2. Save GameResult
+        try {
+            await gameResult.save();
+            console.log(`[SERVER] GameResult saved. ID: ${gameResult._id}`);
+        } catch (err: any) {
+            console.error(`[SERVER] Failed to save GameResult. Reason: ${err.message}`);
+            // If GameResult fails (validity?), we might abort User update? 
+            // Or try to continue? Fails usually mean validation. 
+            // If userId is invalid string, it will fail here.
+            throw err;
+        }
+
+        // 3. Update User Global Stats
+        if (!this.userId || this.userId === 'anon') return;
 
         try {
-            // Calculate Error Rates
-            const time23 = totalDuration * (2 / 3);
-
-            const eventsFirst23 = this.history.filter(h => h.timeOffset <= time23);
-            const eventsLast13 = this.history.filter(h => h.timeOffset > time23);
-
-            const calculateErrorRate = (events: any[]) => {
-                if (events.length === 0) return 0;
-                const errors = events.filter(e => e.result === 'miss' || e.result === 'wrong').length;
-                return (errors / events.length) * 100;
-            };
-
-            const errorRateFirst23 = calculateErrorRate(eventsFirst23);
-            const errorRateLast13 = calculateErrorRate(eventsLast13);
-
-            // Update GameResult with stats
-            gameResult.statistics = {
-                startSpeed: this.startSpeed,
-                maxSpeed: this.sessionMaxSpeed,
-                errorRateFirst23,
-                errorRateLast13
-            };
-            await gameResult.save();
-
-            // Update Global User Stats
             const user = await User.findById(this.userId);
-            if (!user) return;
+            if (!user) {
+                console.warn(`[SERVER] User not found for updates: ${this.userId}`);
+                return;
+            }
 
             const currentGlobalMax = user.statistics?.global?.maxSpeed || 0;
-            const newGlobalMax = Math.max(currentGlobalMax, this.sessionMaxSpeed);
-
-            user.statistics = {
-                global: {
-                    maxSpeed: newGlobalMax
-                }
-            };
-
-            await user.save();
-            console.log(`[SERVER] User stats updated for ${this.userId}`);
-
-        } catch (error) {
-            console.error(`[SERVER] Failed to update user stats:`, error);
+            if (this.sessionMaxSpeed > currentGlobalMax) {
+                user.statistics = {
+                    global: {
+                        maxSpeed: this.sessionMaxSpeed
+                    }
+                };
+                await user.save();
+                console.log(`[SERVER] User stats updated for ${this.userId}`);
+            }
+        } catch (error: any) {
+            console.error(`[SERVER] Failed to update user stats:`, error.message);
         }
     }
 }

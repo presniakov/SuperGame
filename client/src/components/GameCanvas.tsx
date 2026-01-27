@@ -9,7 +9,7 @@ interface RenderSprite extends SpriteData {
 
 const LETTER_COLORS = ['#ff0000', '#00ff00', '#0000ff', '#ffff00', '#ff00ff', '#00ffff'];
 
-export default function GameCanvas({ socket, onAbort, style = 'cyber' }: { socket: Socket | null, onAbort: () => void, style?: GameStyle }) {
+export default function GameCanvas({ socket, onAbort, style = 'cyber', duration = 180000 }: { socket: Socket | null, onAbort: () => void, style?: GameStyle, duration?: number }) {
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const [countdown, setCountdown] = useState<number | null>(null);
     const spritesRef = useRef<RenderSprite[]>([]);
@@ -25,6 +25,8 @@ export default function GameCanvas({ socket, onAbort, style = 'cyber' }: { socke
 
 
     const [dimensions, setDimensions] = useState({ width: 800, height: 600 });
+
+    const [timeLeft, setTimeLeft] = useState<number>(Math.floor(duration / 1000));
 
     useEffect(() => {
         const handleResize = () => {
@@ -103,6 +105,34 @@ export default function GameCanvas({ socket, onAbort, style = 'cyber' }: { socke
             socket.off('spawn_sprite');
         };
     }, [socket]);
+
+    // Timer Interval
+    useEffect(() => {
+        if (countdown !== null) return;
+
+        // Only start if we have time
+        // We do NOT depend on timeLeft here to prevent re-creation interval loop
+        // But we need to ensure we don't start it if it's already 0?
+        // Actually, the interval logic handles check inside.
+
+        const timer = setInterval(() => {
+            setTimeLeft(prev => {
+                if (prev <= 0) {
+                    clearInterval(timer);
+                    return 0;
+                }
+                return prev - 1;
+            });
+        }, 1000);
+
+        return () => clearInterval(timer);
+    }, [countdown]);
+
+    const formatTime = (seconds: number) => {
+        const m = Math.floor(seconds / 60);
+        const s = seconds % 60;
+        return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+    };
 
     const checkEventCompletion = () => {
         // Check if we have results for all sprites OR if a 'wrong' result terminated the event early?
@@ -263,8 +293,27 @@ export default function GameCanvas({ socket, onAbort, style = 'cyber' }: { socke
             // Cyber uses dark bg, Hi-Tech uses transparent (showing global body bg)
             // Steam uses semi-transparent dark to let rivets show through but keep contrast
             background: style === 'cyber' ? '#111' : (style === 'steam' ? 'rgba(0,0,0,0.3)' : 'transparent'),
-            overflow: 'hidden'
+            overflow: 'hidden',
+            cursor: 'none', // Hide cursor during game
+            userSelect: 'none' // Prevent text selection
         }}>
+            {/* Timer Display */}
+            <div style={{
+                position: 'absolute',
+                top: '20px',
+                right: '30px',
+                fontFamily: style === 'steam' ? "'Courier New', monospace" : (style === 'hi-tech' ? "'Consolas', 'Monaco', monospace" : "'Robot Mono', 'Consolas', monospace"),
+                fontSize: '2rem',
+                fontWeight: 'bold',
+                fontVariantNumeric: 'tabular-nums', // Fixed width for digits
+                color: style === 'cyber' ? '#00f3ff' : (style === 'steam' ? '#d97706' : '#0f172a'),
+                textShadow: style === 'cyber' ? '0 0 10px #00f3ff' : 'none',
+                letterSpacing: '2px',
+                zIndex: 10
+            }}>
+                {formatTime(timeLeft)}
+            </div>
+
             {countdown !== null && (
                 <div style={{
                     position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)',

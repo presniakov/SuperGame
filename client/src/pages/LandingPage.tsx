@@ -4,7 +4,7 @@ import LoginModal from '../components/LoginModal';
 import './LandingPage.css';
 
 interface LandingPageProps {
-    onLogin: (username: string, token: string, preferences?: { theme: string }, role?: 'user' | 'admin') => void;
+    onLogin: (id: string, username: string, token: string, preferences?: { theme: string }, role?: 'user' | 'admin') => void;
 }
 
 export default function LandingPage({ onLogin }: LandingPageProps) {
