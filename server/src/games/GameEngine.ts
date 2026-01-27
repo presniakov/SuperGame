@@ -5,6 +5,8 @@ import GameResult from '../models/GameResult';
 const LETTER_SIZE = 5; // assumes ~5% screen size
 const DOUBLE_OFFSET_X = (2 / 3) * LETTER_SIZE;
 const DOUBLE_DISTANCE_Y = 1.5 * LETTER_SIZE;
+const MIN_SPEED = 10;
+const MAX_SPEED = 90;
 
 interface SpriteState {
     id: string;
@@ -23,11 +25,13 @@ export class GameSession {
     private isActive: boolean = false;
 
     // Difficulty params
-    private currentSpeed: number = 10; // units per second
+    private currentSpeed: number = 80; // units per second
 
     // Event State
     private activeSprites: SpriteState[] = [];
+    private currentEventId: string | null = null;
     private eventTimeout: NodeJS.Timeout | null = null;
+    private isRunning: boolean = false;
 
     constructor(socketId: string, userId: string, letters: string[]) {
         this.socketId = socketId;
@@ -42,10 +46,16 @@ export class GameSession {
     }
 
     public startGame(emitSpawn: (event: any) => void, onGameOver: (result: any) => void) {
+        if (this.isRunning) {
+            console.warn(`[SERVER] Ignored duplicate startGame call for user ${this.userId}`);
+            return;
+        }
+        this.isRunning = true;
+
         // Start countdown or just start loop? 
         // Logic assumes countdown handled by handler. 
         // We trigger first spawn.
-        this.triggerNextSpawn(emitSpawn);
+        this.triggerNextSpawn(emitSpawn, true); // Pass true for isFirst
 
         // End game timer
         setTimeout(() => {
@@ -54,16 +64,18 @@ export class GameSession {
     }
 
     // Simplified: Just trigger immediate generation. Client handles delays.
-    private triggerNextSpawn(emitSpawn: (event: any) => void) {
+    private triggerNextSpawn(emitSpawn: (event: any) => void, isFirst: boolean = false) {
         if (!this.isActive) return;
-        const event = this.generateSpawn();
+        const event = this.generateSpawn(isFirst);
+
         // Track active sprites (snapshot for validation if needed, though batch validation differs)
         this.activeSprites = event.sprites.map(s => ({ id: s.id, letter: s.letter, active: true }));
+        this.currentEventId = event.eventId;
+
         emitSpawn(event);
     }
 
-    private generateSpawn() {
-        // Determine type: Single/Double (start with 50/50 or adaptive?)
+    private generateSpawn(isFirst: boolean = false) {
         // Determine type: Single/Double (start with 50/50 or adaptive?)
         const isDouble = Math.random() > 0.5;
 
@@ -129,7 +141,6 @@ export class GameSession {
                 sy = -SIZE_Y; // Start fully off-screen
             } else {
                 vx = (Math.random() > 0.5 ? 1 : -1) * this.currentSpeed;
-                vy = (Math.random() - 0.5) * this.currentSpeed * 0.5;
                 sy = 10 + Math.random() * 60; // Random height for horizontal flyer
                 sx = vx > 0 ? -SIZE_X : 100;
             }
@@ -176,8 +187,8 @@ export class GameSession {
             });
         }
 
-        // Random delay 300ms - 1000ms
-        const delay = 300 + Math.floor(Math.random() * 700);
+        // Random delay 300ms - 1000ms. If first, 0.
+        const delay = isFirst ? 0 : (300 + Math.floor(Math.random() * 700));
 
         return {
             eventId,
@@ -198,6 +209,17 @@ export class GameSession {
         emitSpawn: (event: any) => void
     ) {
         if (!this.isActive) return;
+
+        // Idempotency Check: 
+        // If the processed event is NOT the current active event, ignore it.
+        // This prevents double executions if client emits duplicate packets.
+        if (data.eventId !== this.currentEventId) {
+            console.warn(`[SERVER] Ignored stale/duplicate event completion. Current: ${this.currentEventId}, Received: ${data.eventId}`);
+            return;
+        }
+
+        // Clear current event to prevent re-processing
+        this.currentEventId = null;
 
         // Process the batch
         // We assume strict sequentiality: correct keys in correct order if Double.
@@ -222,7 +244,7 @@ export class GameSession {
             // If 'wrong', it's a failure immediately.
             if (result === 'wrong') {
                 this.score = Math.max(0, this.score - 5);
-                this.currentSpeed = Math.max(5, this.currentSpeed - 0.5);
+                this.currentSpeed = Math.max(MIN_SPEED, this.currentSpeed - 0.5);
                 this.history.push({ result: 'wrong', letter, speed: this.currentSpeed, timeOffset });
                 batchFailed = true;
                 break;
@@ -244,7 +266,7 @@ export class GameSession {
                 // E.g. processed sprite 1 before sprite 0.
                 // Fail the event.
                 this.score = Math.max(0, this.score - 5);
-                this.currentSpeed = Math.max(5, this.currentSpeed - 0.5);
+                this.currentSpeed = Math.max(MIN_SPEED, this.currentSpeed - 0.5);
                 this.history.push({ result: 'wrong', letter: `Order mismatch: Expected ${this.activeSprites[expectedIndex].letter}, Got ${letter}`, speed: this.currentSpeed, timeOffset });
                 batchFailed = true;
                 break;
@@ -253,12 +275,21 @@ export class GameSession {
             // Correct order so far
             if (result === 'hit') {
                 this.score += 10;
-                this.currentSpeed = Math.min(this.currentSpeed + 0.5, 50);
+
+                // Non-linear speed increase: The higher the speed, the lower the increment.
+                // We use a fraction of the remaining "distance" to MAX_SPEED.
+                // At Speed 10 (Gap 80): +1.6
+                // At Speed 50 (Gap 40): +0.8
+                // At Speed 80 (Gap 10): +0.2
+                const gap = MAX_SPEED - this.currentSpeed;
+                const increment = Math.max(0.1, gap * 0.02);
+
+                this.currentSpeed = Math.min(this.currentSpeed + increment, MAX_SPEED);
                 this.history.push({ result: 'hit', letter, speed: this.currentSpeed, timeOffset });
             } else {
                 // Miss
                 this.score = Math.max(0, this.score - 5);
-                this.currentSpeed = Math.max(5, this.currentSpeed - 0.5);
+                this.currentSpeed = Math.max(MIN_SPEED, this.currentSpeed - 0.5);
                 this.history.push({ result: 'miss', letter, speed: this.currentSpeed, timeOffset });
             }
 
