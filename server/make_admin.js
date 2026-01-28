@@ -12,11 +12,7 @@ const connectDB = async () => {
     let retries = 0;
     while (retries < MAX_RETRIES) {
         try {
-            const mongoURI = process.env.MONGODB_URI;
-            if (!mongoURI) {
-                console.error('Error: MONGODB_URI is not defined in .env');
-                process.exit(1);
-            }
+            const mongoURI = process.env.MONGODB_URI || 'mongodb://localhost:27017/supergame';
             await mongoose.connect(mongoURI);
             console.log('MongoDB Connected...');
             return;
