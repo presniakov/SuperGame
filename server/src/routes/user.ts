@@ -22,15 +22,19 @@ router.get('/me', auth, async (req: any, res) => {
 router.put('/preferences', auth, async (req: any, res) => {
     try {
         const userId = req.user.id;
-        const { theme } = req.body;
+        const { theme, startSpeed } = req.body;
 
-        if (!theme) {
-            return res.status(400).json({ message: 'Theme is required' });
+        const updateData: any = {};
+        if (theme) updateData['preferences.theme'] = theme;
+        if (startSpeed !== undefined) updateData['preferences.startSpeed'] = startSpeed;
+
+        if (Object.keys(updateData).length === 0) {
+            return res.status(400).json({ message: 'No preferences provided to update' });
         }
 
         const user = await User.findByIdAndUpdate(
             userId,
-            { $set: { 'preferences.theme': theme } },
+            { $set: updateData },
             { new: true }
         );
 

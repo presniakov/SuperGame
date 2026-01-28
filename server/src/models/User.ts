@@ -4,7 +4,8 @@ export interface IUser extends Document {
     username: string;
     password?: string;
     preferences: {
-        theme: string;
+        theme: { type: String, default: 'cyber' },
+        startSpeed?: number;
     };
     role: 'user' | 'admin';
     statistics?: {
@@ -18,7 +19,8 @@ const UserSchema: Schema = new Schema({
     username: { type: String, required: true, unique: true },
     password: { type: String, required: true },
     preferences: {
-        theme: { type: String, default: 'cyber' }
+        theme: { type: String, default: 'cyber' },
+        startSpeed: { type: Number, default: 40 }
     },
     role: {
         type: String,

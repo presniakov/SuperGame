@@ -2,11 +2,27 @@ import { Server, Socket } from 'socket.io';
 import { GameSession } from '../games/GameEngine';
 import GameResult from '../models/GameResult';
 
+import User from '../models/User';
+
 const sessions: Record<string, GameSession> = {};
 
 export default function gameHandler(io: Server, socket: Socket) {
-    socket.on('join_game', ({ letters, userId }) => {
-        const session = new GameSession(socket.id, userId || 'anon', letters);
+    socket.on('join_game', async ({ letters, userId }) => {
+        let startSpeed = 40;
+
+        // Fetch user preferences if userId is valid
+        if (userId && userId !== 'anon') {
+            try {
+                const user = await User.findById(userId);
+                if (user && user.preferences?.startSpeed) {
+                    startSpeed = user.preferences.startSpeed;
+                }
+            } catch (err) {
+                console.error('Error fetching user config for game:', err);
+            }
+        }
+
+        const session = new GameSession(socket.id, userId || 'anon', letters, startSpeed);
         sessions[socket.id] = session;
         socket.emit('game_ready', { duration: 180000 });
     });

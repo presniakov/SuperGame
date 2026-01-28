@@ -16,17 +16,15 @@ interface SpriteState {
 }
 
 export class GameSession {
-    private socketId: string;
-    private userId: string;
-    private targetLetters: string[];
+    // Properties are initialized via constructor shortcut or below
     private score: number = 0;
     private history: any[] = [];
-    private startTime: number;
+    private startTime: number = 0;
     private duration: number = 3 * 60 * 1000; // 3 mins
     private isActive: boolean = false;
 
     // Difficulty params
-    private startSpeed: number = 10; // units per second
+    private startSpeed: number; // units per second
     private currentSpeed: number;
     private sessionMaxSpeed: number;
 
@@ -34,17 +32,19 @@ export class GameSession {
     private activeSprites: SpriteState[] = [];
     private currentEventId: string | null = null;
     private currentEventType: 'single' | 'double' = 'single';
-    private eventTimeout: NodeJS.Timeout | null = null;
+    private eventTimer: NodeJS.Timeout | null = null;
     private isRunning: boolean = false;
 
-    constructor(socketId: string, userId: string, letters: string[]) {
-        this.socketId = socketId;
-        this.userId = userId;
-        this.targetLetters = letters;
-        this.startTime = Date.now();
-        this.isActive = true;
+    constructor(
+        private socketId: string,
+        private userId: string,
+        private targetLetters: string[],
+        customStartSpeed: number = 40
+    ) {
+        this.startSpeed = customStartSpeed;
         this.currentSpeed = this.startSpeed;
         this.sessionMaxSpeed = this.startSpeed;
+        console.log(`[GameEngine] Initialized for ${userId} with startSpeed: ${this.startSpeed}`);
     }
 
     public getUserId(): string {
@@ -57,6 +57,7 @@ export class GameSession {
             return;
         }
         this.isRunning = true;
+        this.isActive = true;
 
         // Start countdown or just start loop? 
         // Logic assumes countdown handled by handler. 
@@ -325,14 +326,16 @@ export class GameSession {
 
     public abortGame() {
         this.isActive = false;
-        if (this.eventTimeout) clearTimeout(this.eventTimeout);
+        if (this.eventTimer) clearTimeout(this.eventTimer);
         console.log(`Session aborted for user ${this.userId}`);
     }
 
     public endGame(onGameOver: (result: any) => void) {
         this.isActive = false;
-        if (this.eventTimeout) clearTimeout(this.eventTimeout);
-
+        if (this.eventTimer) {
+            clearTimeout(this.eventTimer);
+            this.eventTimer = null;
+        }
         const totalDuration = Date.now() - this.startTime;
 
         onGameOver({

@@ -37,8 +37,47 @@ export default function AdminDashboard() {
         }
     };
 
+    const [configSpeed, setConfigSpeed] = useState(40);
+
+    const fetchConfig = async () => {
+        try {
+            const res = await fetch(`${API_BASE}/api/user/me`, {
+                headers: { 'x-auth-token': token || '' }
+            });
+            if (res.ok) {
+                const data = await res.json();
+                if (data.preferences?.startSpeed) {
+                    setConfigSpeed(data.preferences.startSpeed);
+                }
+            }
+        } catch (e) {
+            console.error("Failed to load config", e);
+        }
+    };
+
+    const saveConfig = async () => {
+        try {
+            const res = await fetch(`${API_BASE}/api/user/preferences`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'x-auth-token': token || ''
+                },
+                body: JSON.stringify({ startSpeed: parseInt(String(configSpeed)) })
+            });
+            if (res.ok) {
+                alert('Start Speed Saved!');
+            } else {
+                alert('Failed to save.');
+            }
+        } catch (e) {
+            alert('Error saving config');
+        }
+    };
+
     useEffect(() => {
         fetchUsers();
+        fetchConfig();
     }, []);
 
     const updateRole = async (userId: string, newRole: string) => {
@@ -68,6 +107,43 @@ export default function AdminDashboard() {
             <p style={{ color: '#aaa', marginBottom: '2rem' }}>User Management System</p>
 
             {error && <div style={{ color: '#ff4444' }}>{error}</div>}
+
+            {/* Game Configuration Panel */}
+            <div style={{
+                background: '#1a1a2e',
+                padding: '1rem',
+                borderRadius: '8px',
+                border: '1px solid #333',
+                marginBottom: '2rem'
+            }}>
+                <h3 style={{ borderBottom: '1px solid #333', paddingBottom: '1rem' }}>Game Configuration</h3>
+                <div style={{ marginTop: '1rem', display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                    <label>Next Session Start Speed:</label>
+                    <input
+                        type="number"
+                        value={configSpeed}
+                        onChange={(e) => setConfigSpeed(parseInt(e.target.value))}
+                        style={{ padding: '0.5rem', borderRadius: '4px', border: '1px solid #555', background: '#333', color: 'white' }}
+                    />
+                    <button
+                        onClick={saveConfig}
+                        style={{
+                            background: '#d97706',
+                            color: 'black',
+                            border: 'none',
+                            padding: '0.5rem 1rem',
+                            borderRadius: '4px',
+                            cursor: 'pointer',
+                            fontWeight: 'bold'
+                        }}
+                    >
+                        Save Configuration
+                    </button>
+                </div>
+                <p style={{ fontSize: '0.8rem', color: '#888', marginTop: '0.5rem' }}>
+                    This setting applies to YOUR next game session.
+                </p>
+            </div>
 
             <div style={{
                 background: '#1a1a2e',
