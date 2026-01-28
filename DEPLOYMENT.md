@@ -175,3 +175,31 @@ Every time you push changes to GitHub, follow these steps on your server to upda
    ```bash
    pm2 restart supergame-backend
    ```
+
+## 11. Troubleshooting
+
+### Git Pull Failed: "error: cannot pull with rebase: You have unstaged changes"
+This happens if files like `node_modules` or `dist` were generated on the server but were also tracked by Git. To fix this:
+
+1.  **Discard local changes on the server** (Safe for generated files):
+    ```bash
+    git reset --hard
+    ```
+
+2.  **Pull the latest code** (including the new `.gitignore`):
+    ```bash
+    git pull
+    ```
+
+3.  **Re-install and Re-build**:
+    Now that `node_modules` and `dist` might be gone (if they were removed from the repo), regenerate them:
+    ```bash
+    # Backend
+    cd /var/www/supergame/server
+    npm install && npm run build
+    pm2 restart supergame-backend
+
+    # Frontend
+    cd /var/www/supergame/client
+    npm install && npm run build
+    ```
