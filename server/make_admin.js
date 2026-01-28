@@ -12,9 +12,9 @@ const connectDB = async () => {
     let retries = 0;
     while (retries < MAX_RETRIES) {
         try {
-            const mongoURI = process.env.MONGO_URI;
+            const mongoURI = process.env.MONGODB_URI;
             if (!mongoURI) {
-                console.error('Error: MONGO_URI is not defined in .env');
+                console.error('Error: MONGODB_URI is not defined in .env');
                 process.exit(1);
             }
             await mongoose.connect(mongoURI);
