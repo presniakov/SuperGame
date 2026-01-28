@@ -176,7 +176,25 @@ Every time you push changes to GitHub, follow these steps on your server to upda
    pm2 restart supergame-backend
    ```
 
-## 11. Troubleshooting
+   pm2 restart supergame-backend
+   ```
+
+## 11. Creating the First Admin
+Since the generic registration creates a regular `user`, you must manually promote the first admin using the server script.
+
+1.  SSH into your server.
+2.  Navigate to the backend directory:
+    ```bash
+    cd /var/www/supergame/server
+    ```
+3.  Run the helper script with your username:
+    ```bash
+    node make_admin.js your_username
+    ```
+4.  Logout and Login again on the website to see the "ADMIN ACCESS" button.
+
+## 12. Troubleshooting
+
 
 ### Git Pull Failed: "error: cannot pull with rebase: You have unstaged changes"
 This happens if files like `node_modules` or `dist` were generated on the server but were also tracked by Git. To fix this:
