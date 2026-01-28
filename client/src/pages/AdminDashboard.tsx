@@ -1,15 +1,149 @@
 
 
+import { useEffect, useState } from 'react';
+
+interface User {
+    _id: string;
+    username: string;
+    role: string;
+    date: string;
+}
+
 export default function AdminDashboard() {
+    const [users, setUsers] = useState<User[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState('');
+
+    const token = localStorage.getItem('token');
+    // Fallback to direct server URL if env var is missing (avoids "undefined/api" bug)
+    const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:4000';
+
+    const fetchUsers = async () => {
+        try {
+            const res = await fetch(`${API_BASE}/api/user/all`, {
+                headers: { 'x-auth-token': token || '' }
+            });
+            if (!res.ok) {
+                const errText = await res.text();
+                throw new Error(`Failed to fetch users: ${res.status} ${errText}`);
+            }
+            const data = await res.json();
+            setUsers(data);
+        } catch (err: any) {
+            console.error(err);
+            setError(err.message || 'Error loading users');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        fetchUsers();
+    }, []);
+
+    const updateRole = async (userId: string, newRole: string) => {
+        try {
+            const res = await fetch(`${API_BASE}/api/user/${userId}/role`, {
+                method: 'PATCH',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'x-auth-token': token || ''
+                },
+                body: JSON.stringify({ role: newRole })
+            });
+            if (!res.ok) throw new Error('Failed to update role');
+
+            // Refresh list
+            fetchUsers();
+        } catch (err) {
+            alert('Failed to update role');
+        }
+    };
+
+    if (loading) return <div style={{ padding: '2rem', color: '#fff' }}>Loading...</div>;
+
     return (
         <div style={{ padding: '2rem', color: '#fff' }}>
             <h1>Admin Dashboard</h1>
-            <p>Welcome, Administrator. This module was lazily loaded!</p>
-            <div style={{ marginTop: '20px', border: '1px solid #ff4444', padding: '10px' }}>
-                <h3>Confidential Admin Controls</h3>
-                <button style={{ backgroundColor: '#ff4444', color: 'white', border: 'none', padding: '10px', cursor: 'pointer' }}>
-                    Delete Database
-                </button>
+            <p style={{ color: '#aaa', marginBottom: '2rem' }}>User Management System</p>
+
+            {error && <div style={{ color: '#ff4444' }}>{error}</div>}
+
+            <div style={{
+                background: '#1a1a2e',
+                padding: '1rem',
+                borderRadius: '8px',
+                border: '1px solid #333'
+            }}>
+                <h3 style={{ borderBottom: '1px solid #333', paddingBottom: '1rem' }}>Registered Users</h3>
+                <table style={{ width: '100%', borderCollapse: 'collapse', marginTop: '1rem' }}>
+                    <thead>
+                        <tr style={{ textAlign: 'left', color: '#888' }}>
+                            <th style={{ padding: '0.5rem' }}>Username</th>
+                            <th style={{ padding: '0.5rem' }}>Role</th>
+                            <th style={{ padding: '0.5rem' }}>ID</th>
+                            <th style={{ padding: '0.5rem' }}>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {users.map(user => (
+                            <tr key={user._id} style={{ borderTop: '1px solid #333' }}>
+                                <td style={{ padding: '0.75rem 0.5rem' }}>{user.username}</td>
+                                <td style={{ padding: '0.5rem' }}>
+                                    <span style={{
+                                        padding: '0.25rem 0.5rem',
+                                        borderRadius: '4px',
+                                        background: user.role === 'admin' ? '#d97706' : '#333',
+                                        color: user.role === 'admin' ? '#000' : '#ccc',
+                                        fontWeight: 'bold',
+                                        fontSize: '0.8rem'
+                                    }}>
+                                        {user.role.toUpperCase()}
+                                    </span>
+                                </td>
+                                <td style={{ padding: '0.5rem', fontFamily: 'monospace', color: '#555' }}>
+                                    {user._id}
+                                </td>
+                                <td style={{ padding: '0.5rem' }}>
+                                    {user.role === 'user' ? (
+                                        <button
+                                            onClick={() => updateRole(user._id, 'admin')}
+                                            style={{
+                                                background: 'transparent',
+                                                border: '1px solid #d97706',
+                                                color: '#d97706',
+                                                padding: '0.25rem 0.75rem',
+                                                borderRadius: '4px',
+                                                cursor: 'pointer',
+                                                transition: 'all 0.2s'
+                                            }}
+                                            onMouseOver={e => e.currentTarget.style.background = 'rgba(217, 119, 6, 0.1)'}
+                                            onMouseOut={e => e.currentTarget.style.background = 'transparent'}
+                                        >
+                                            Promote
+                                        </button>
+                                    ) : (
+                                        <button
+                                            onClick={() => updateRole(user._id, 'user')}
+                                            style={{
+                                                background: 'transparent',
+                                                border: '1px solid #555',
+                                                color: '#888',
+                                                padding: '0.25rem 0.75rem',
+                                                borderRadius: '4px',
+                                                cursor: 'pointer'
+                                            }}
+                                            onMouseOver={e => e.currentTarget.style.borderColor = '#aaa'}
+                                            onMouseOut={e => e.currentTarget.style.borderColor = '#555'}
+                                        >
+                                            Demote
+                                        </button>
+                                    )}
+                                </td>
+                            </tr>
+                        ))}
+                    </tbody>
+                </table>
             </div>
         </div>
     );

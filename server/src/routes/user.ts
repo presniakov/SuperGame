@@ -58,4 +58,48 @@ router.get('/history', auth, async (req: any, res) => {
     }
 });
 
+// ADMIN: Get all users
+router.get('/all', auth, async (req: any, res) => {
+    try {
+        if (req.user.role !== 'admin') {
+            return res.status(403).json({ message: 'Access denied: Admins only' });
+        }
+
+        const users = await User.find().select('-password').sort({ date: -1 });
+        res.json(users);
+    } catch (error) {
+        console.error('Error fetching users:', error);
+        res.status(500).json({ message: 'Server error' });
+    }
+});
+
+// ADMIN: Update user role
+router.patch('/:id/role', auth, async (req: any, res) => {
+    try {
+        if (req.user.role !== 'admin') {
+            return res.status(403).json({ message: 'Access denied: Admins only' });
+        }
+
+        const { role } = req.body;
+        if (!['user', 'admin'].includes(role)) {
+            return res.status(400).json({ message: 'Invalid role' });
+        }
+
+        const user = await User.findByIdAndUpdate(
+            req.params.id,
+            { $set: { role } },
+            { new: true }
+        ).select('-password');
+
+        if (!user) {
+            return res.status(404).json({ message: 'User not found' });
+        }
+
+        res.json(user);
+    } catch (error) {
+        console.error('Error updating role:', error);
+        res.status(500).json({ message: 'Server error' });
+    }
+});
+
 export default router;

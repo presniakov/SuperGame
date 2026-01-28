@@ -53,7 +53,7 @@ export default function PersonalPage({
             });
 
             if (res.ok) {
-                window.location.href = '/admin.html';
+                window.open('/admin.html', '_blank');
             } else {
                 alert('Admin access denied.');
             }
