@@ -141,11 +141,11 @@ export class GameSession {
 
             let vx = 0;
             let sx = startX, sy = -20; // Default values
-            const vy = this.currentSpeed;
+            let vy = this.currentSpeed;
             // Flipped Logic: 20% chance
             const isFlipped = Math.random() < 0.2;
 
-            if (Math.random() > 0.3) {
+            if (Math.random() > 0.4) {
                 // Vertical Fall
                 sx = startX;
                 sy = -SIZE_Y;
@@ -153,6 +153,7 @@ export class GameSession {
                 // Horizontal Flyer (Side Entry)
                 // Note: Flyer can also be flipped (upside down text moving sideways)
                 vx = (Math.random() > 0.5 ? 1 : -1) * this.currentSpeed;
+                vy = 0;
                 sy = 10 + Math.random() * 60;
                 sx = vx > 0 ? -SIZE_X : 100; // 100 is approx width%? No, these are units. Grid is 0-100.
                 // Wait, logic says 'sx = vx > 0 ? -SIZE_X : 100'. 100 is right edge. Correct.
