@@ -256,6 +256,26 @@ export default function GameCanvas({ socket, onAbort, style = 'cyber', duration 
 
                 // RENDERING LOGIC
                 ctx.save();
+
+                // Handle Flipped Sprite
+                if (sprite.isFlipped) {
+                    // Move origin to sprite center
+                    // We draw text at (px, py + 30). Center depends on size. 
+                    // Let's approximate center or just flip at the anchor point.
+                    // Text anchor is default (left-bottom roughly?). 
+                    // ctx.fillText(str, x, y). 
+                    // To flip in place: translate to (x, y), scale(1, -1), draw at (0, 0).
+                    // But we draw at py + 30.
+                    // Let's translate to (px, py).
+
+                    const centerX = px + (sprite.size || 50) / 3; // Approx center X
+                    const centerY = py + 15; // Approx center Y
+
+                    ctx.translate(centerX, centerY);
+                    ctx.scale(1, -1);
+                    ctx.translate(-centerX, -centerY);
+                }
+
                 if (style === 'steam') {
                     const fontSize = sprite.size || 50;
                     ctx.font = `bold ${fontSize}px 'Courier New', monospace`;

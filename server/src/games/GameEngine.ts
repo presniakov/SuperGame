@@ -26,9 +26,9 @@ export class GameSession {
     private isActive: boolean = false;
 
     // Difficulty params
-    private currentSpeed: number = 80; // units per second
-    private startSpeed: number = 80;
-    private sessionMaxSpeed: number = 80;
+    private startSpeed: number = 10; // units per second
+    private currentSpeed: number;
+    private sessionMaxSpeed: number;
 
     // Event State
     private activeSprites: SpriteState[] = [];
@@ -43,8 +43,8 @@ export class GameSession {
         this.targetLetters = letters;
         this.startTime = Date.now();
         this.isActive = true;
-        this.startSpeed = this.currentSpeed;
-        this.sessionMaxSpeed = this.currentSpeed;
+        this.currentSpeed = this.startSpeed;
+        this.sessionMaxSpeed = this.startSpeed;
     }
 
     public getUserId(): string {
@@ -138,18 +138,23 @@ export class GameSession {
             // Keeping single as is, but updating startX/bounds logic if needed.
             // Actually, keep single "random direction" logic but ensure bounds.
 
-            const isVertical = Math.random() > 0.5;
+            let vx = 0;
+            let sx = startX, sy = -20; // Default values
+            const vy = this.currentSpeed;
+            // Flipped Logic: 20% chance
+            const isFlipped = Math.random() < 0.2;
 
-            let vx = 0, vy = 0;
-            let sx = startX, sy = -20; // Start higher due to large size
-
-            if (isVertical) {
-                vy = this.currentSpeed;
-                sy = -SIZE_Y; // Start fully off-screen
+            if (Math.random() > 0.3) {
+                // Vertical Fall
+                sx = startX;
+                sy = -SIZE_Y;
             } else {
+                // Horizontal Flyer (Side Entry)
+                // Note: Flyer can also be flipped (upside down text moving sideways)
                 vx = (Math.random() > 0.5 ? 1 : -1) * this.currentSpeed;
-                sy = 10 + Math.random() * 60; // Random height for horizontal flyer
-                sx = vx > 0 ? -SIZE_X : 100;
+                sy = 10 + Math.random() * 60;
+                sx = vx > 0 ? -SIZE_X : 100; // 100 is approx width%? No, these are units. Grid is 0-100.
+                // Wait, logic says 'sx = vx > 0 ? -SIZE_X : 100'. 100 is right edge. Correct.
             }
 
             sprites.push({
@@ -158,7 +163,8 @@ export class GameSession {
                 startX: sx,
                 startY: sy,
                 velocityX: vx,
-                velocityY: vy
+                velocityY: vy,
+                isFlipped
             });
 
         } else {

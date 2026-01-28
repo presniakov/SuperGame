@@ -5,6 +5,7 @@ export interface SpriteData {
     startY: number;
     velocityX: number;
     velocityY: number;
+    isFlipped?: boolean;
 }
 
 export interface SpawnEvent {
