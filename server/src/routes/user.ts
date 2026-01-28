@@ -106,4 +106,23 @@ router.patch('/:id/role', auth, async (req: any, res) => {
     }
 });
 
+// ADMIN: Get specific user history
+router.get('/:id/history', auth, async (req: any, res) => {
+    try {
+        if (req.user.role !== 'admin') {
+            return res.status(403).json({ message: 'Access denied: Admins only' });
+        }
+
+        const results = await GameResult.find({ userId: req.params.id })
+            .select('date statistics eventLog')
+            .sort({ date: -1 })
+            .limit(50); // Last 50 games
+
+        res.json(results);
+    } catch (error) {
+        console.error('Error fetching user history:', error);
+        res.status(500).json({ message: 'Server error' });
+    }
+});
+
 export default router;

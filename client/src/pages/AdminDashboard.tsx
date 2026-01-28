@@ -99,6 +99,34 @@ export default function AdminDashboard() {
         }
     };
 
+    const [selectedUser, setSelectedUser] = useState<User | null>(null);
+    const [userHistory, setUserHistory] = useState<any[]>([]);
+    const [statsLoading, setStatsLoading] = useState(false);
+
+    const viewStats = async (user: User) => {
+        setSelectedUser(user);
+        setStatsLoading(true);
+        try {
+            const res = await fetch(`${API_BASE}/api/user/${user._id}/history`, {
+                headers: { 'x-auth-token': token || '' }
+            });
+            if (res.ok) {
+                const data = await res.json();
+                setUserHistory(data);
+            }
+        } catch (e) {
+            console.error(e);
+            alert('Failed to load user history');
+        } finally {
+            setStatsLoading(false);
+        }
+    };
+
+    const closeStats = () => {
+        setSelectedUser(null);
+        setUserHistory([]);
+    };
+
     if (loading) return <div style={{ padding: '2rem', color: '#fff' }}>Loading...</div>;
 
     return (
@@ -159,6 +187,7 @@ export default function AdminDashboard() {
                             <th style={{ padding: '0.5rem' }}>Role</th>
                             <th style={{ padding: '0.5rem' }}>ID</th>
                             <th style={{ padding: '0.5rem' }}>Action</th>
+                            <th style={{ padding: '0.5rem' }}>Stats</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -180,7 +209,7 @@ export default function AdminDashboard() {
                                 <td style={{ padding: '0.5rem', fontFamily: 'monospace', color: '#555' }}>
                                     {user._id}
                                 </td>
-                                <td style={{ padding: '0.5rem' }}>
+                                <td style={{ padding: '0.5rem', display: 'flex', gap: '10px' }}>
                                     {user.role === 'user' ? (
                                         <button
                                             onClick={() => updateRole(user._id, 'admin')}
@@ -216,11 +245,71 @@ export default function AdminDashboard() {
                                         </button>
                                     )}
                                 </td>
+                                <td style={{ padding: '0.5rem' }}>
+                                    <button
+                                        onClick={() => viewStats(user)}
+                                        style={{ background: '#3b82f6', color: 'white', border: 'none', padding: '0.25rem 0.75rem', borderRadius: '4px', cursor: 'pointer' }}
+                                    >
+                                        Stats
+                                    </button>
+                                </td>
                             </tr>
                         ))}
                     </tbody>
                 </table>
             </div>
+
+            {/* Stats Modal */}
+            {selectedUser && (
+                <div style={{
+                    position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+                    background: 'rgba(0,0,0,0.8)', display: 'flex', justifyContent: 'center', alignItems: 'center',
+                    zIndex: 1000
+                }}>
+                    <div style={{
+                        background: '#16213e', padding: '2rem', borderRadius: '8px',
+                        width: '80%', maxWidth: '800px', maxHeight: '80vh', overflowY: 'auto',
+                        border: '1px solid #333'
+                    }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1rem' }}>
+                            <h2>Stats: {selectedUser.username}</h2>
+                            <button onClick={closeStats} style={{ background: 'transparent', border: 'none', color: '#fff', fontSize: '1.5rem', cursor: 'pointer' }}>&times;</button>
+                        </div>
+
+                        {statsLoading ? <p>Loading...</p> : (
+                            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                                <thead>
+                                    <tr style={{ textAlign: 'left', color: '#888', borderBottom: '1px solid #333' }}>
+                                        <th style={{ padding: '0.5rem' }}>Date</th>
+                                        <th style={{ padding: '0.5rem' }}>Score</th>
+                                        <th style={{ padding: '0.5rem' }}>Max Speed</th>
+                                        <th style={{ padding: '0.5rem' }}>Accuracy</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {userHistory.map((game, i) => (
+                                        <tr key={i} style={{ borderBottom: '1px solid #222' }}>
+                                            <td style={{ padding: '0.5rem' }}>{new Date(game.date).toLocaleString()}</td>
+                                            <td style={{ padding: '0.5rem', color: '#d97706' }}>
+                                                {game.statistics?.totalScore || Math.floor(game.score || 0)}
+                                            </td>
+                                            <td style={{ padding: '0.5rem' }}>{game.statistics?.maxSpeed?.toFixed(1) || '-'}</td>
+                                            <td style={{ padding: '0.5rem' }}>
+                                                {game.statistics?.errorRateFirst23 ?
+                                                    (100 - (game.statistics.errorRateFirst23 + game.statistics.errorRateLast13) / 2).toFixed(1) + '%'
+                                                    : '-'}
+                                            </td>
+                                        </tr>
+                                    ))}
+                                    {userHistory.length === 0 && (
+                                        <tr><td colSpan={4} style={{ padding: '1rem', textAlign: 'center', color: '#666' }}>No games played</td></tr>
+                                    )}
+                                </tbody>
+                            </table>
+                        )}
+                    </div>
+                </div>
+            )}
         </div>
     );
 }
