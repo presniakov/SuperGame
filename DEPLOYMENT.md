@@ -221,3 +221,13 @@ This happens if files like `node_modules` or `dist` were generated on the server
     cd /var/www/supergame/client
     npm install && npm run build
     ```
+
+### Build Failed: "sh: 1: tsc: Permission denied"
+This happens if the executable permissions for `node_modules` binaries were lost (common after git reset).
+**Fix:** Re-install dependencies to restore permissions.
+```bash
+cd /var/www/supergame/server
+rm -rf node_modules
+npm install
+npm run build
+```
