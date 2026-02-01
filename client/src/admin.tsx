@@ -21,7 +21,8 @@ function AdminGuard({ children }: { children: React.ReactNode }) {
 
             try {
                 // Verify token and role with backend
-                const apiUrl = import.meta.env.PROD ? '/api' : 'http://localhost:4000/api';
+                const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+                const apiUrl = isLocal ? (import.meta.env.VITE_API_URL || 'http://localhost:4000/api') : '/api';
                 const res = await fetch(`${apiUrl}/user/me`, {
                     headers: { 'x-auth-token': token }
                 });
