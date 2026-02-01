@@ -15,8 +15,10 @@ export default function AdminDashboard() {
     const [error, setError] = useState('');
 
     const token = localStorage.getItem('token');
-    // Fallback to relative URL in production (proxied by Nginx)
-    const API_BASE = import.meta.env.PROD ? '' : (import.meta.env.VITE_API_URL || 'http://localhost:4000');
+    // Robust Runtime Check: If we are not on localhost, we are in production.
+    // This ignores build-time flags which might be flaky if the build process varies.
+    const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+    const API_BASE = isLocal ? (import.meta.env.VITE_API_URL || 'http://localhost:4000') : '';
 
     const fetchUsers = async () => {
         try {
