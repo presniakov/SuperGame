@@ -125,4 +125,34 @@ router.get('/:id/history', auth, async (req: any, res) => {
     }
 });
 
+// ADMIN: Delete User (Cascading)
+router.delete('/:id', auth, async (req: any, res) => {
+    try {
+        if (req.user.role !== 'admin') {
+            return res.status(403).json({ message: 'Access denied: Admins only' });
+        }
+
+        const userId = req.params.id;
+
+        // 1. Delete the User
+        const deletedUser = await User.findByIdAndDelete(userId);
+        if (!deletedUser) {
+            return res.status(404).json({ message: 'User not found' });
+        }
+
+        // 2. Cascading: Delete all GameResults for this user
+        const deleteResult = await GameResult.deleteMany({ userId });
+
+        console.log(`Admin deleted user ${deletedUser.username} (${userId}) and ${deleteResult.deletedCount} game records.`);
+
+        res.json({
+            message: `User ${deletedUser.username} deleted`,
+            details: `Removed user and ${deleteResult.deletedCount} history records.`
+        });
+    } catch (error) {
+        console.error('Error deleting user:', error);
+        res.status(500).json({ message: 'Server error' });
+    }
+});
+
 export default router;

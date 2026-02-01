@@ -101,6 +101,25 @@ export default function AdminDashboard() {
         }
     };
 
+    const deleteUser = async (userId: string) => {
+        try {
+            const res = await fetch(`${API_BASE}/api/user/${userId}`, {
+                method: 'DELETE',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'x-auth-token': token || ''
+                }
+            });
+            if (!res.ok) throw new Error('Failed to delete user');
+
+            // Refresh list
+            fetchUsers();
+        } catch (err) {
+            alert('Failed to delete user');
+            console.error(err);
+        }
+    };
+
     const [selectedUser, setSelectedUser] = useState<User | null>(null);
     const [userHistory, setUserHistory] = useState<any[]>([]);
     const [statsLoading, setStatsLoading] = useState(false);
@@ -246,6 +265,26 @@ export default function AdminDashboard() {
                                             Demote
                                         </button>
                                     )}
+                                    <button
+                                        onClick={() => {
+                                            if (window.confirm(`Are you SURE you want to delete user "${user.username}"?\n\nThis will permanently delete the user and ALL their game history.\nThis action cannot be undone.`)) {
+                                                deleteUser(user._id);
+                                            }
+                                        }}
+                                        style={{
+                                            background: 'transparent',
+                                            border: '1px solid #ef4444',
+                                            color: '#ef4444',
+                                            padding: '0.25rem 0.75rem',
+                                            borderRadius: '4px',
+                                            cursor: 'pointer',
+                                            marginLeft: '10px'
+                                        }}
+                                        onMouseOver={e => e.currentTarget.style.background = 'rgba(239, 68, 68, 0.1)'}
+                                        onMouseOut={e => e.currentTarget.style.background = 'transparent'}
+                                    >
+                                        Delete
+                                    </button>
                                 </td>
                                 <td style={{ padding: '0.5rem' }}>
                                     <button
