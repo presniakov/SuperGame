@@ -15,8 +15,8 @@ export default function AdminDashboard() {
     const [error, setError] = useState('');
 
     const token = localStorage.getItem('token');
-    // Fallback to direct server URL if env var is missing (avoids "undefined/api" bug)
-    const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:4000';
+    // Fallback to relative URL in production (proxied by Nginx)
+    const API_BASE = import.meta.env.PROD ? '' : (import.meta.env.VITE_API_URL || 'http://localhost:4000');
 
     const fetchUsers = async () => {
         try {
