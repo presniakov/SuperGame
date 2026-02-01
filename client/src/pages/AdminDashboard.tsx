@@ -1,6 +1,7 @@
 
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
+import type { IGameResult } from '../types';
 
 interface User {
     _id: string;
@@ -20,7 +21,7 @@ export default function AdminDashboard() {
     const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
     const API_BASE = isLocal ? (import.meta.env.VITE_API_URL || 'http://localhost:4000') : '';
 
-    const fetchUsers = async () => {
+    const fetchUsers = useCallback(async () => {
         try {
             const res = await fetch(`${API_BASE}/api/user/all`, {
                 headers: { 'x-auth-token': token || '' }
@@ -31,17 +32,21 @@ export default function AdminDashboard() {
             }
             const data = await res.json();
             setUsers(data);
-        } catch (err: any) {
+        } catch (err: unknown) {
             console.error(err);
-            setError(err.message || 'Error loading users');
+            if (err instanceof Error) {
+                setError(err.message || 'Error loading users');
+            } else {
+                setError('Error loading users');
+            }
         } finally {
             setLoading(false);
         }
-    };
+    }, [API_BASE, token]);
 
     const [configSpeed, setConfigSpeed] = useState(40);
 
-    const fetchConfig = async () => {
+    const fetchConfig = useCallback(async () => {
         try {
             const res = await fetch(`${API_BASE}/api/user/me`, {
                 headers: { 'x-auth-token': token || '' }
@@ -52,10 +57,10 @@ export default function AdminDashboard() {
                     setConfigSpeed(data.preferences.startSpeed);
                 }
             }
-        } catch (e) {
+        } catch (e: unknown) {
             console.error("Failed to load config", e);
         }
-    };
+    }, [API_BASE, token]);
 
     const saveConfig = async () => {
         try {
@@ -72,7 +77,7 @@ export default function AdminDashboard() {
             } else {
                 alert('Failed to save.');
             }
-        } catch (e) {
+        } catch {
             alert('Error saving config');
         }
     };
@@ -80,7 +85,7 @@ export default function AdminDashboard() {
     useEffect(() => {
         fetchUsers();
         fetchConfig();
-    }, []);
+    }, [fetchUsers, fetchConfig]);
 
     const updateRole = async (userId: string, newRole: string) => {
         try {
@@ -96,7 +101,7 @@ export default function AdminDashboard() {
 
             // Refresh list
             fetchUsers();
-        } catch (err) {
+        } catch {
             alert('Failed to update role');
         }
     };
@@ -114,14 +119,14 @@ export default function AdminDashboard() {
 
             // Refresh list
             fetchUsers();
-        } catch (err) {
+        } catch (err: unknown) {
             alert('Failed to delete user');
             console.error(err);
         }
     };
 
     const [selectedUser, setSelectedUser] = useState<User | null>(null);
-    const [userHistory, setUserHistory] = useState<any[]>([]);
+    const [userHistory, setUserHistory] = useState<IGameResult[]>([]);
     const [statsLoading, setStatsLoading] = useState(false);
 
     const viewStats = async (user: User) => {
@@ -135,7 +140,7 @@ export default function AdminDashboard() {
                 const data = await res.json();
                 setUserHistory(data);
             }
-        } catch (e) {
+        } catch (e: unknown) {
             console.error(e);
             alert('Failed to load user history');
         } finally {

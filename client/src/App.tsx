@@ -18,11 +18,9 @@ function GameContainer() {
   const params = new URLSearchParams(window.location.search);
   const isDevAccess = params.get('dev') === 'supergame_dev';
 
-  const [view, setView] = useState<'landing' | 'menu' | 'game' | 'result' | 'history' | 'tutorial' | 'coming-soon'>(
-    isDevAccess ? 'landing' : 'coming-soon'
-  );
+
   // resultData is no longer needed in App state as ResultsPage fetches history
-  const [username, setUsername] = useState('');
+  const [username, setUsername] = useState(() => localStorage.getItem('username') || '');
   const [userId, setUserId] = useState(''); // Store Mongo _id
   const [gameDuration, setGameDuration] = useState(180000); // in ms
   const [userRole, setUserRole] = useState<'user' | 'admin'>('user');
@@ -31,14 +29,16 @@ function GameContainer() {
     return (saved === 'cyber' || saved === 'hi-tech' || saved === 'steam') ? (saved as GameStyle) : 'cyber';
   });
 
-  // Check for persistent session
+  const [view, setView] = useState<'landing' | 'menu' | 'game' | 'result' | 'history' | 'tutorial' | 'coming-soon'>(() => {
+    if (isDevAccess) return 'landing';
+    const savedToken = localStorage.getItem('token');
+    return savedToken ? 'menu' : 'coming-soon';
+  });
+
+  // Check for persistent session - Sync only
   useEffect(() => {
     const savedToken = localStorage.getItem('token');
-    const savedUser = localStorage.getItem('username');
-    if (savedToken && savedUser) {
-      setUsername(savedUser);
-      setView('menu');
-
+    if (savedToken) {
       // Sync with backend
       const apiUrl = import.meta.env.PROD ? '/api' : 'http://localhost:4000/api';
       fetch(`${apiUrl}/user/me`, {

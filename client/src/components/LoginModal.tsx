@@ -37,8 +37,12 @@ export default function LoginModal({ onClose, onSuccess }: LoginModalProps) {
             }
 
             onSuccess(data.user.id, data.user.username, data.token, data.user.preferences, data.user.role);
-        } catch (err: any) {
-            setError(err.message);
+        } catch (err: unknown) {
+            if (err instanceof Error) {
+                setError(err.message);
+            } else {
+                setError('An unexpected error occurred');
+            }
         } finally {
             setLoading(false);
         }

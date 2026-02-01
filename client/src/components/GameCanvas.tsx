@@ -1,4 +1,5 @@
-import { useEffect, useRef, useState } from 'react';
+
+import { useEffect, useRef, useState, useCallback } from 'react';
 import { Socket } from 'socket.io-client';
 import type { SpawnEvent, SpriteData, GameStyle } from '../types';
 
@@ -88,7 +89,8 @@ export default function GameCanvas({ socket, onAbort, style = 'cyber', duration 
                 resultsRef.current = [];
                 totalSpritesInEventRef.current = event.sprites.length;
 
-                event.sprites.forEach(s => {
+                // SpriteData comes from event, we add timestamp for RenderSprite
+                event.sprites.forEach((s: SpriteData) => {
                     spritesRef.current.push({
                         ...s,
                         timestamp: Date.now(),
@@ -146,7 +148,7 @@ export default function GameCanvas({ socket, onAbort, style = 'cyber', duration 
         return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
     };
 
-    const checkEventCompletion = () => {
+    const checkEventCompletion = useCallback(() => {
         // Check if we have results for all sprites OR if a 'wrong' result terminated the event early?
         // Logic: specific sprites are removed on hit/miss.
         // If spritesRef is empty, event is done.
@@ -163,12 +165,12 @@ export default function GameCanvas({ socket, onAbort, style = 'cyber', duration 
             lastEventEndRef.current = endTime;
             socket?.emit('event_completed', payload);
         }
-    };
+    }, [socket]);
 
-    const handleResult = (result: 'hit' | 'miss' | 'wrong', letter: string, spriteId: string = '') => {
+    const handleResult = useCallback((result: 'hit' | 'miss' | 'wrong', letter: string, spriteId: string = '') => {
         resultsRef.current.push({ spriteId, result, letter });
         checkEventCompletion();
-    };
+    }, [checkEventCompletion]); // No deps needed as refs are stable
 
     // Input Handling
     useEffect(() => {
@@ -203,7 +205,7 @@ export default function GameCanvas({ socket, onAbort, style = 'cyber', duration 
 
         window.addEventListener('keydown', handleKeyDown);
         return () => window.removeEventListener('keydown', handleKeyDown);
-    }, [socket, countdown, onAbort]);
+    }, [socket, countdown, onAbort, handleResult]);
 
     // Game Loop
     useEffect(() => {
@@ -304,7 +306,7 @@ export default function GameCanvas({ socket, onAbort, style = 'cyber', duration 
 
         requestRef.current = requestAnimationFrame(animate);
         return () => cancelAnimationFrame(requestRef.current!);
-    }, [socket, dimensions, style]); // Add dimensions dependency to redraw if resized
+    }, [socket, dimensions, style, handleResult]); // Add dimensions dependency to redraw if resized
 
     // const { theme } = useTheme(); // Removed
 

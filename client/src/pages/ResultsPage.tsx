@@ -47,6 +47,7 @@ export default function ResultsPage({ onBack, theme }: ResultsPageProps) {
         primary: getThemeColor('--neon-blue') || '#00d4ff',
         text: getThemeColor('--cyber-text') || '#aaa',
         grid: getThemeColor('--cyber-dim') || '#333'
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }), [theme]); // Re-run when theme changes
 
     useEffect(() => {
@@ -79,6 +80,13 @@ export default function ResultsPage({ onBack, theme }: ResultsPageProps) {
         [results, selectedResultId]);
 
     // Graph 1: Event Log (Scatter)
+    interface ChartPoint {
+        x: number;
+        y: number;
+        result: string;
+        isDouble: boolean;
+    }
+
     const scatterData = useMemo(() => {
         if (!selectedResult) return { datasets: [] };
 
@@ -93,23 +101,24 @@ export default function ResultsPage({ onBack, theme }: ResultsPageProps) {
             datasets: [{
                 label: 'Events',
                 data: points,
-                backgroundColor: (ctx: any) => {
-                    const raw = ctx.raw as any;
+                backgroundColor: (ctx: { raw: unknown }) => {
+                    const raw = ctx.raw as ChartPoint;
                     if (!raw) return 'gray';
                     return raw.result === 'hit' ? themeColors.hit : themeColors.miss;
                 },
-                pointRadius: (ctx: any) => {
-                    const raw = ctx.raw as any;
+                pointRadius: (ctx: { raw: unknown }) => {
+                    const raw = ctx.raw as ChartPoint;
                     if (!raw) return 5;
                     return raw.isDouble ? 8 : 5;
                 },
-                pointBorderWidth: (ctx: any) => {
-                    const raw = ctx.raw as any;
+                pointBorderWidth: (ctx: { raw: unknown }) => {
+                    const raw = ctx.raw as ChartPoint;
                     return raw && raw.isDouble ? 2 : 0;
                 },
                 borderColor: '#FFF',
             }]
         };
+
     }, [selectedResult, themeColors]); // Depend on themeColors
 
     // Graph 2: Score Progress
