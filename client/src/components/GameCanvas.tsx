@@ -199,7 +199,7 @@ export default function GameCanvas({ socket, onAbort, style = 'cyber', duration 
                 // Wrong Key OR Trying to hit valid 2nd letter out of order
                 // "End event with result wrong"
                 spritesRef.current = []; // Clear all to stop visual processing
-                handleResult('wrong', key);
+                handleResult('wrong', key, targetSprite.id);
             }
         };
 
@@ -220,6 +220,7 @@ export default function GameCanvas({ socket, onAbort, style = 'cyber', duration 
 
             const now = Date.now();
             let eventFailed = false;
+            let failedSpriteId = '';
 
             // 1. UPDATE & CHECK BOUNDS
             // If ANY sprite goes out of bounds, the whole event fails immediately.
@@ -235,13 +236,14 @@ export default function GameCanvas({ socket, onAbort, style = 'cyber', duration 
                 // Vertical bounds: starts negative, falls positive. Miss if > 120.
                 if (posX < -20 || posX > 120 || posY > 120 || posY < -200) {
                     eventFailed = true;
+                    failedSpriteId = sprite.id;
                     break;
                 }
             }
 
             if (eventFailed) {
                 spritesRef.current = []; // Clear all visuals immediately
-                handleResult('miss', 'ANY'); // Result 'miss' ends event
+                handleResult('miss', 'ANY', failedSpriteId); // Result 'miss' ends event
                 // Stop this frame
                 requestRef.current = requestAnimationFrame(animate);
                 return;

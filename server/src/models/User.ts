@@ -8,8 +8,10 @@ export interface IUser extends Document {
         theme: { type: String, default: 'cyber' },
         startSpeed?: number;
         profile: ProfileType;
+        forceSessionType?: string;
     };
     role: 'user' | 'admin';
+    totalSessionsPlayed: number;
     statistics?: {
         global: {
             maxSpeed: number;
@@ -27,13 +29,15 @@ const UserSchema: Schema = new Schema({
             type: String,
             enum: Object.values(ProfileType),
             default: ProfileType.CASUAL
-        }
+        },
+        forceSessionType: { type: String }
     },
     role: {
         type: String,
         enum: ['user', 'admin'],
         default: 'user'
     },
+    totalSessionsPlayed: { type: Number, default: 0 },
     statistics: {
         global: {
             maxSpeed: { type: Number, default: 0 }

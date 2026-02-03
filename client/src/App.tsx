@@ -45,7 +45,12 @@ function GameContainer() {
       fetch(`${apiUrl}/user/me`, {
         headers: { 'x-auth-token': savedToken }
       })
-        .then(res => res.json())
+        .then(res => {
+          if (res.status === 401) {
+            throw new Error('Unauthorized');
+          }
+          return res.json();
+        })
         .then(data => {
           if (data._id) {
             setUserId(data._id);
@@ -60,7 +65,12 @@ function GameContainer() {
             setUserProfile(data.preferences.profile);
           }
         })
-        .catch(console.error);
+        .catch(err => {
+          console.error('Session validation failed:', err);
+          if (err.message === 'Unauthorized' || err.message.includes('401')) {
+            handleLogout(); // Clear invalid session
+          }
+        });
     }
   }, []);
 

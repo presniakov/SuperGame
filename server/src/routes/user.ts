@@ -22,12 +22,13 @@ router.get('/me', auth, async (req: any, res) => {
 router.put('/preferences', auth, async (req: any, res) => {
     try {
         const userId = req.user.id;
-        const { theme, startSpeed, profile } = req.body;
+        const { theme, startSpeed, profile, forceSessionType } = req.body;
 
         const updateData: any = {};
         if (theme) updateData['preferences.theme'] = theme;
         if (startSpeed !== undefined) updateData['preferences.startSpeed'] = startSpeed;
         if (profile) updateData['preferences.profile'] = profile;
+        if (forceSessionType !== undefined) updateData['preferences.forceSessionType'] = forceSessionType;
 
         if (Object.keys(updateData).length === 0) {
             return res.status(400).json({ message: 'No preferences provided to update' });
@@ -58,15 +59,19 @@ router.patch('/:id/preferences', auth, async (req: any, res) => {
         }
 
         const userId = req.params.id;
-        const { profile } = req.body;
+        const { profile, forceSessionType } = req.body;
 
-        if (!profile) {
-            return res.status(400).json({ message: 'Profile is required' });
+        if (!profile && !forceSessionType) {
+            return res.status(400).json({ message: 'Profile or Session Type is required' });
         }
+
+        const updateFields: any = {};
+        if (profile) updateFields['preferences.profile'] = profile;
+        if (forceSessionType !== undefined) updateFields['preferences.forceSessionType'] = forceSessionType;
 
         const user = await User.findByIdAndUpdate(
             userId,
-            { $set: { 'preferences.profile': profile } },
+            { $set: updateFields },
             { new: true }
         ).select('-password');
 

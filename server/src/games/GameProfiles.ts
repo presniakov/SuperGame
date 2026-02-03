@@ -26,6 +26,7 @@ export interface UserProfile {
     name: ProfileType;
     globalCap: number;
     startSpeed: number;
+    trainingBuffer: number;
     growthRate: number;
     kUp: number;
     kDown: number;
@@ -36,8 +37,9 @@ export interface UserProfile {
 export const PROFILES: Record<ProfileType, UserProfile> = {
     [ProfileType.SUPPORT]: {
         name: ProfileType.SUPPORT,
-        globalCap: 110.0,
+        globalCap: 80.0,
         startSpeed: 50.0,
+        trainingBuffer: 5.0,
         growthRate: 0.08,
         kUp: 0.03,
         kDown: 0.15,
@@ -46,8 +48,9 @@ export const PROFILES: Record<ProfileType, UserProfile> = {
     },
     [ProfileType.STEADY]: {
         name: ProfileType.STEADY,
-        globalCap: 160.0,
-        startSpeed: 80.0,
+        globalCap: 100.0,
+        startSpeed: 70.0,
+        trainingBuffer: 8.0,
         growthRate: 0.1,
         kUp: 0.03,
         kDown: 0.15,
@@ -56,8 +59,9 @@ export const PROFILES: Record<ProfileType, UserProfile> = {
     },
     [ProfileType.CASUAL]: {
         name: ProfileType.CASUAL,
-        globalCap: 280.0,
-        startSpeed: 125.0,
+        globalCap: 125.0,
+        startSpeed: 90.0,
+        trainingBuffer: 10.0,
         growthRate: 0.15,
         kUp: 0.03,
         kDown: 0.15,
@@ -66,8 +70,9 @@ export const PROFILES: Record<ProfileType, UserProfile> = {
     },
     [ProfileType.ACTIVE]: {
         name: ProfileType.ACTIVE,
-        globalCap: 400.0,
-        startSpeed: 200.0,
+        globalCap: 140.0,
+        startSpeed: 110.0,
+        trainingBuffer: 12.0,
         growthRate: 0.2,
         kUp: 0.03,
         kDown: 0.15,
@@ -76,8 +81,9 @@ export const PROFILES: Record<ProfileType, UserProfile> = {
     },
     [ProfileType.ELITE]: {
         name: ProfileType.ELITE,
-        globalCap: 500.0,
-        startSpeed: 300.0,
+        globalCap: 165.0,
+        startSpeed: 130.0,
+        trainingBuffer: 15.0,
         growthRate: 0.25,
         kUp: 0.03,
         kDown: 0.15,

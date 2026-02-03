@@ -2,6 +2,7 @@ import { v4 as uuidv4 } from 'uuid';
 import GameResult from '../models/GameResult';
 import User from '../models/User';
 import { UserProfile, PROFILES, DEFAULT_PROFILE, ComplexityBitmap, ProfileType } from './GameProfiles';
+import { SessionType, SessionStrategy, getStrategy, SpawnEventResult } from './SessionStrategies';
 
 const LETTER_SIZE = 5; // units
 const SIZE_PX = 350; // px reference
@@ -24,13 +25,14 @@ export class GameSession {
     private score: number = 0;
     private history: any[] = [];
     private startTime: number = 0;
-    private duration: number = 3 * 60 * 1000;
     private isActive: boolean = false;
 
-    // Difficulty params controlled by Profile
+    // Difficulty params controlled by Profile & Strategy
     private profile: UserProfile;
+    private strategy: SessionStrategy;
     private currentSpeed: number;
     private sessionMaxSpeed: number;
+    private actualStartSpeed: number;
 
     // Event State
     private activeSprites: SpriteState[] = [];
@@ -43,7 +45,8 @@ export class GameSession {
         private socketId: string,
         private userId: string,
         private targetLetters: string[],
-        profileType: ProfileType | string = ProfileType.CASUAL
+        profileType: ProfileType | string = ProfileType.CASUAL,
+        sessionType: SessionType = SessionType.GRIND
     ) {
         // Resolve profile
         const pType = Object.values(ProfileType).includes(profileType as ProfileType)
@@ -52,44 +55,36 @@ export class GameSession {
 
         this.profile = PROFILES[pType] || DEFAULT_PROFILE;
 
+        // Initialize Strategy
+        this.strategy = getStrategy(sessionType, this.profile);
+
+        // Initial Speed setup (Strategy might override in initialize, but we set defaults)
         this.currentSpeed = this.profile.startSpeed;
         this.sessionMaxSpeed = this.profile.startSpeed;
 
-        console.log(`[GameEngine] Initialized for ${userId} with Profile: ${this.profile.name} (Start: ${this.currentSpeed}, Cap: ${this.profile.globalCap})`);
+        // Run Strategy Initialization
+        this.strategy.initialize(this);
+
+        // Capture actual start speed after strategy init
+        this.actualStartSpeed = this.currentSpeed;
+        // Also ensure max speed starts at current if strategy lowered it (like in Calibration)
+        this.sessionMaxSpeed = this.currentSpeed;
+
+        console.log(`[GameEngine] Initialized for ${userId} | Profile: ${this.profile.name} | Session: ${sessionType} (Start: ${this.currentSpeed})`);
     }
 
-    public getUserId(): string {
-        return this.userId;
-    }
+    // --- Public Interface for Strategy ---
 
-    public startGame(emitSpawn: (event: any) => void, onGameOver: (result: any) => void) {
-        if (this.isRunning) return;
+    public getUserId(): string { return this.userId; }
+    public getSpeed(): number { return this.currentSpeed; }
+    public getMaxSpeed(): number { return this.sessionMaxSpeed; }
 
-        this.isRunning = true;
-        this.isActive = true;
-        this.startTime = Date.now();
+    public setSpeed(speed: number) { this.currentSpeed = speed; }
+    public setMaxSpeed(speed: number) { this.sessionMaxSpeed = speed; }
 
-        this.triggerNextSpawn(emitSpawn, true);
-
-        setTimeout(() => {
-            this.endGame(onGameOver);
-        }, this.duration);
-    }
-
-    private triggerNextSpawn(emitSpawn: (event: any) => void, isFirst: boolean = false) {
-        if (!this.isActive) return;
-        const event = this.generateSpawn(isFirst);
-
-        this.activeSprites = event.sprites.map(s => ({ id: s.id, letter: s.letter, active: true }));
-        this.currentEventId = event.eventId;
-        this.currentEventType = event.type as 'single' | 'double';
-
-        emitSpawn(event);
-    }
-
-    private generateSpawn(isFirst: boolean = false) {
+    public createSpawnEvent(complexity: number): SpawnEventResult {
         // Complexity Check: Double
-        const canDouble = (this.profile.complexity & ComplexityBitmap.DOUBLE) !== 0;
+        const canDouble = (complexity & ComplexityBitmap.DOUBLE) !== 0;
         const isDouble = canDouble && Math.random() > 0.5;
 
         const type = isDouble ? 'double' : 'single';
@@ -112,12 +107,12 @@ export class GameSession {
             let vy = this.currentSpeed;
 
             // Complexity Check: Flip
-            const canFlip = (this.profile.complexity & ComplexityBitmap.FLIP) !== 0;
+            const canFlip = (complexity & ComplexityBitmap.FLIP) !== 0;
             const isFlipped = canFlip && Math.random() < 0.2;
 
             // Complexity Check: Side (Flyer)
-            const canSide = (this.profile.complexity & ComplexityBitmap.SIDE) !== 0;
-            const isSide = canSide && Math.random() > 0.4; // 60% chance logic preserved from original as inversed
+            const canSide = (complexity & ComplexityBitmap.SIDE) !== 0;
+            const isSide = canSide && Math.random() > 0.4;
 
             if (!isSide) {
                 // Vertical Fall
@@ -167,7 +162,11 @@ export class GameSession {
             });
         }
 
-        const delay = isFirst ? 0 : (300 + Math.floor(Math.random() * 700));
+        // Delay logic? Can be part of Strategy or standard?
+        // Standard random delay.
+        // If Strategy wants to override, we'd need to pass it or let strategy modify result.
+        // For now, standard delay.
+        const delay = (300 + Math.floor(Math.random() * 700));
 
         return {
             eventId,
@@ -178,6 +177,41 @@ export class GameSession {
         };
     }
 
+    // --- Game Logic ---
+
+    public startGame(emitSpawn: (event: any) => void, onGameOver: (result: any) => void) {
+        if (this.isRunning) return;
+
+        this.isRunning = true;
+        this.isActive = true;
+        this.startTime = Date.now();
+
+        this.triggerNextSpawn(emitSpawn, true);
+
+        // Set Timeout for Duration (if limited)
+        const duration = this.strategy.getDuration();
+        if (duration < 2000000000) { // If not infinite
+            // Add slight buffer? No, exact duration.
+            setTimeout(() => {
+                if (this.isActive) this.endGame(onGameOver);
+            }, duration);
+        }
+    }
+
+    private triggerNextSpawn(emitSpawn: (event: any) => void, isFirst: boolean = false) {
+        if (!this.isActive) return;
+
+        // Use Strategy to generate event
+        const event = this.strategy.generateSpawn(this, isFirst);
+        if (isFirst) event.delay = 0; // Override delay for first
+
+        this.activeSprites = event.sprites.map(s => ({ id: s.id, letter: s.letter, active: true }));
+        this.currentEventId = event.eventId;
+        this.currentEventType = event.type as 'single' | 'double';
+
+        emitSpawn(event);
+    }
+
     public processEventBatch(
         data: {
             eventId: string,
@@ -185,115 +219,99 @@ export class GameSession {
             startTime: number,
             endTime: number
         },
-        emitSpawn: (event: any) => void
+        emitSpawn: (event: any) => void,
+        onGameOver: (result: any) => void // Need this to end session from loop
     ) {
         if (!this.isActive) return;
         if (data.eventId !== this.currentEventId) return;
 
         this.currentEventId = null;
-        let expectedIndex = 0;
-        let batchFailed = false;
+        if (data.results.length === 0) return;
 
+        // Aggregate results for the entire batch (Event)
+        const letters: string[] = [];
+        let anyWrong = false;
+        let anyMiss = false;
+        let allHit = true;
+
+        // Verify all items match current event context
         for (const item of data.results) {
-            const { result, letter, spriteId } = item;
-            const timeOffset = data.endTime;
-            const eventDuration = data.endTime - data.startTime;
-
-            if (result === 'wrong') {
-                this.punish();
-                this.history.push({ result: 'wrong', letter, speed: this.currentSpeed, timeOffset, eventType: this.currentEventType, eventDuration });
-                batchFailed = true;
-                break;
+            const index = this.activeSprites.findIndex(s => s.id === item.spriteId);
+            if (index === -1) {
+                // If sprite logic fails, we assume failure but continue processing
+                console.warn('[GameEngine] Sprite ID mismatch in batch');
+                continue;
             }
 
-            const spriteIndex = this.activeSprites.findIndex(s => s.id === spriteId);
+            letters.push(item.letter);
 
-            if (spriteIndex === -1 || spriteIndex !== expectedIndex) {
-                this.punish();
-                this.history.push({ result: 'wrong', letter: `Order mismatch`, speed: this.currentSpeed, timeOffset, eventType: this.currentEventType, eventDuration });
-                batchFailed = true;
-                break;
-            }
+            if (item.result === 'wrong') anyWrong = true;
+            if (item.result === 'miss') anyMiss = true;
+            if (item.result !== 'hit') allHit = false;
+        }
 
-            if (result === 'hit') {
-                this.score += 10;
-                this.reward();
-                this.history.push({ result: 'hit', letter, speed: this.currentSpeed, timeOffset, eventType: this.currentEventType, eventDuration });
+        // Determine Event Outcome
+        // Strict: ONE Miss/Wrong fails the whole event.
+        // Success: ALL must be hit.
+
+        const eventDuration = data.endTime - data.startTime;
+        // Use relative time from session start for the plot/history
+        // data.endTime is client-relative, but we want server-authority alignment
+        const timeOffset = Date.now() - this.startTime;
+        const combinedLetter = letters.join('+');
+
+        if (allHit) {
+            // Validate that we actually hit ALL target sprites
+            // If activeSprites.length > letters.length, we missed some?
+            // "data.results" contains what client sent. 
+            // We only pushed to "letters" if IDs matched.
+            // If letters.length < this.activeSprites.length, something is wrong.
+            if (letters.length < this.activeSprites.length) {
+                // Partial success is NOT success/hit for the event logic
+                this.strategy.handleFailure(this);
+                this.history.push({
+                    result: 'miss', // Treat incomplete as miss
+                    letter: combinedLetter || 'ERR',
+                    speed: this.currentSpeed,
+                    timeOffset,
+                    eventType: this.currentEventType,
+                    eventDuration
+                });
             } else {
-                this.punish();
-                this.history.push({ result: 'miss', letter, speed: this.currentSpeed, timeOffset, eventType: this.currentEventType, eventDuration });
+                this.score += (10 * letters.length);
+                this.strategy.handleSuccess(this);
+                this.history.push({
+                    result: 'hit',
+                    letter: combinedLetter,
+                    speed: this.currentSpeed,
+                    timeOffset,
+                    eventType: this.currentEventType,
+                    eventDuration
+                });
             }
+        } else {
+            // Failure
+            this.strategy.handleFailure(this);
+            const resultType = anyWrong ? 'wrong' : 'miss';
+            this.history.push({
+                result: resultType,
+                letter: combinedLetter,
+                speed: this.currentSpeed,
+                timeOffset,
+                eventType: this.currentEventType,
+                eventDuration
+            });
+        }
 
-            expectedIndex++;
+
+        // Check End Condition (e.g. Calibration Event Count)
+        const elapsed = Date.now() - this.startTime;
+        if (this.strategy.shouldEndSession(this, elapsed)) {
+            this.endGame(onGameOver);
+            return;
         }
 
         this.triggerNextSpawn(emitSpawn);
-    }
-
-    private punish() {
-        this.score = Math.max(0, this.score - 5);
-
-        // Failure: S_next = S_curr - k_down * (S_curr - S_start)
-        const drop = this.profile.kDown * (this.currentSpeed - this.profile.startSpeed);
-        // Ensure we don't drop below startSpeed (or min speed if start is too low?)
-        // Formula naturally converges to S_start.
-        this.currentSpeed = Math.max(this.profile.startSpeed, this.currentSpeed - drop);
-    }
-
-    private reward() {
-        const gap = this.profile.globalCap - this.currentSpeed;
-        if (gap <= 0) return;
-
-        // Success: S_next = S_curr + k_up * (Omega - S_curr)
-        // Note: The formula provided is clean asymptotic approach.
-        // Ignore growthRate? User prompt only mentioned k_up.
-        // Wait, "Growth Rate" in profile is 0.08, 0.1 etc. 
-        // User prompt says: "S_next = S_curr + k_up * (Omega - S_curr)"
-        // But user provided K up: 0.1, K down: 0.2.
-        // AND "Growth Rate" in profile definition.
-        // Let's re-read the previous prompt/profile definition.
-        // Profile: kUp: 0.1 (constant?), Growth Rate: 0.08.
-        // The formula uses "k_up". 
-        // The user might mean the profile field `growthRate` acts as the coefficient?
-        // OR the profile field `kUp` acts as the coefficient?
-        // In Asymptotic growth, the factor multiplying the gap is the rate.
-        // Usually "Growth Rate" -> Rate.
-        // "K up" -> maybe a constant boost?
-        // Let's look at the formula carefully: "S_next = S_curr + k_up * ... "
-        // It uses `k_up` as the multiplier.
-        // BUT, if I look at my `GameProfiles.ts`:
-        // kUp: 0.1
-        // growthRate: 0.08
-        // If I use 0.1 as the multiplier, it's quite fast convergence.
-        // If I use 0.08, it's similar.
-        // Let's try to infer from values.
-        // Elite: Start 285, Cap 555. Gap ~270.
-        // If rate is 0.1 (kUp), step is 27.
-        // If rate is 0.25 (growthRate), step is 67.5. Huge acceleration.
-        // Casual: Start 111, Cap 285. Gap ~174.
-        // Rate 0.1 -> 17.
-        // Rate 0.15 -> 26.
-        // The `growthRate` variable changes with difficulty. `kUp` does not.
-        // Therefore, `growthRate` must be the coefficient controlling the curve steepness.
-        // I will use `this.profile.growthRate` as the `k_up` in the formula.
-        // I will rename the variable in comments to avoid confusion, or assume `k_up` in user notation maps to `growthRate` in code.
-        // Wait, "K up" is in the profile. Maybe I should use that?
-        // But `kUp` is 0.1 everywhere.
-        // User said: "Success: S_next = S_curr + k_up * (Omega - S_curr)".
-        // If I use the constant 0.1, then 'Elite' and 'Casual' have same convergence speed relative to gap.
-        // That seems wrong. Elite should be harder/faster? 
-        // Actually, if Elite has higher start and high cap, maybe constant rate is fine?
-        // BUT `growthRate` is in the profile and unused if I ignore it.
-        // Let's assume the user made a notation slip and meant `growthRate` OR that my `GameProfiles.ts` `kUp` value is just a placeholder and `growthRate` is the real one.
-        // Let's look at `GameProfiles.ts` again.
-        // Support: growth 0.08. Steady: 0.1. Casual: 0.15. Active: 0.2. Elite: 0.25.
-        // This variation strongly suggests THIS is the factor.
-        // I will use `this.profile.growthRate`.
-
-        // User explicitly requested to use kUp instead of growthRate.
-        const increment = this.profile.kUp * gap;
-        this.currentSpeed = Math.min(this.profile.globalCap, this.currentSpeed + increment);
-        this.sessionMaxSpeed = Math.max(this.sessionMaxSpeed, this.currentSpeed);
     }
 
     public abortGame() {
@@ -302,6 +320,8 @@ export class GameSession {
     }
 
     public endGame(onGameOver: (result: any) => void) {
+        if (!this.isActive) return; // Prevent double calls
+
         this.isActive = false;
         if (this.eventTimer) clearTimeout(this.eventTimer);
         const totalDuration = Date.now() - this.startTime;
@@ -309,10 +329,15 @@ export class GameSession {
         onGameOver({
             score: this.score,
             history: this.history,
-            username: 'Player'
+            username: 'Player',
+            sessionType: this.strategy.type
         });
 
-        if (totalDuration < 20000) return;
+        const isCalibration = this.strategy.type === SessionType.CALIBRATION;
+        if (!isCalibration && totalDuration < 10000 && this.strategy.getDuration() > 60000) {
+            // Short session ignored unless it's Calibration or a short strategy
+            return;
+        }
 
         const result = new GameResult({
             userId: this.userId,
@@ -320,7 +345,9 @@ export class GameSession {
             letters: this.targetLetters,
             eventLog: this.history,
             duration: totalDuration,
-            date: new Date()
+            date: new Date(),
+            sessionType: this.strategy.type,
+            userProfile: this.profile.name
         });
 
         this.saveGameData(totalDuration, result).catch(err => {
@@ -350,9 +377,10 @@ export class GameSession {
         ));
 
         gameResult.statistics = {
-            startSpeed: this.profile.startSpeed, // Record profile start speed
+            startSpeed: this.actualStartSpeed,
             maxSpeed: this.sessionMaxSpeed,
             totalScore,
+            totalErrorRate,
             errorRateFirst23,
             errorRateLast13
         };
@@ -364,11 +392,27 @@ export class GameSession {
         try {
             const user = await User.findById(this.userId);
             if (user) {
+                // Update Total Sessions
+                user.totalSessionsPlayed = (user.totalSessionsPlayed || 0) + 1;
+
+                // Snapshot the session number for this result
+                gameResult.sessionNumber = user.totalSessionsPlayed;
+                await gameResult.save();
+
+                // Clear Forced Session if it was used
+                if (user.preferences?.forceSessionType) {
+                    user.preferences.forceSessionType = undefined;
+                }
+
                 const currentGlobalMax = user.statistics?.global?.maxSpeed || 0;
                 if (this.sessionMaxSpeed > currentGlobalMax) {
-                    user.statistics = { global: { maxSpeed: this.sessionMaxSpeed } };
-                    await user.save();
+                    user.statistics = {
+                        global: {
+                            maxSpeed: this.sessionMaxSpeed
+                        }
+                    };
                 }
+                await user.save();
             }
         } catch (e) { console.error(e); }
     }

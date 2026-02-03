@@ -1,6 +1,6 @@
 
 import { useEffect, useState, useCallback } from 'react';
-import { ProfileType } from '../types';
+import { ProfileType, SessionType } from '../types';
 import type { IGameResult } from '../types';
 
 interface User {
@@ -10,7 +10,9 @@ interface User {
     date: string;
     preferences?: {
         profile: ProfileType;
+        forceSessionType?: SessionType;
     };
+    totalSessionsPlayed?: number;
 }
 
 export default function AdminDashboard() {
@@ -47,7 +49,7 @@ export default function AdminDashboard() {
         }
     }, [API_BASE, token]);
 
-    const [configProfile, setConfigProfile] = useState<ProfileType>(ProfileType.CASUAL);
+    const [configSession, setConfigSession] = useState<SessionType | ''>('');
 
     const fetchConfig = useCallback(async () => {
         try {
@@ -56,8 +58,10 @@ export default function AdminDashboard() {
             });
             if (res.ok) {
                 const data = await res.json();
-                if (data.preferences?.profile) {
-                    setConfigProfile(data.preferences.profile);
+                if (data.preferences?.forceSessionType) {
+                    setConfigSession(data.preferences.forceSessionType);
+                } else {
+                    setConfigSession('');
                 }
             }
         } catch (e: unknown) {
@@ -73,10 +77,10 @@ export default function AdminDashboard() {
                     'Content-Type': 'application/json',
                     'x-auth-token': token || ''
                 },
-                body: JSON.stringify({ profile: configProfile })
+                body: JSON.stringify({ forceSessionType: configSession })
             });
             if (res.ok) {
-                alert('Profile Saved!');
+                alert('Session Config Saved!');
             } else {
                 alert('Failed to save.');
             }
@@ -123,6 +127,23 @@ export default function AdminDashboard() {
             fetchUsers();
         } catch {
             alert('Failed to update profile');
+        }
+    };
+
+    const updateSessionType = async (userId: string, type: string) => {
+        try {
+            const res = await fetch(`${API_BASE}/api/user/${userId}/preferences`, {
+                method: 'PATCH',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'x-auth-token': token || ''
+                },
+                body: JSON.stringify({ forceSessionType: type })
+            });
+            if (!res.ok) throw new Error('Failed to update session');
+            fetchUsers();
+        } catch {
+            alert('Failed to update session');
         }
     };
 
@@ -192,14 +213,15 @@ export default function AdminDashboard() {
             }}>
                 <h3 style={{ borderBottom: '1px solid #333', paddingBottom: '1rem' }}>Game Configuration</h3>
                 <div style={{ marginTop: '1rem', display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                    <label>User Profile:</label>
+                    <label>Next Session Type:</label>
                     <select
-                        value={configProfile}
-                        onChange={(e) => setConfigProfile(e.target.value as ProfileType)}
-                        style={{ padding: '0.5rem', borderRadius: '4px', border: '1px solid #555', background: '#333', color: 'white' }}
+                        value={configSession}
+                        onChange={(e) => setConfigSession(e.target.value as SessionType)}
+                        style={{ padding: '0.5rem', borderRadius: '4px', border: '1px solid #555', background: '#333', color: 'white', minWidth: '150px' }}
                     >
-                        {Object.values(ProfileType).map((profile) => (
-                            <option key={profile} value={profile}>{profile}</option>
+                        <option value="">Auto (Cycle)</option>
+                        {Object.values(SessionType).map((type) => (
+                            <option key={type} value={type}>{type}</option>
                         ))}
                     </select>
                     <button
@@ -218,7 +240,7 @@ export default function AdminDashboard() {
                     </button>
                 </div>
                 <p style={{ fontSize: '0.8rem', color: '#888', marginTop: '0.5rem' }}>
-                    This sets the difficulty profile for YOUR next game session.
+                    This forces a specific session strategy for YOUR next game.
                 </p>
             </div>
 
@@ -235,6 +257,7 @@ export default function AdminDashboard() {
                             <th style={{ padding: '0.5rem' }}>Username</th>
                             <th style={{ padding: '0.5rem' }}>Role</th>
                             <th style={{ padding: '0.5rem' }}>Profile</th>
+                            <th style={{ padding: '0.5rem' }}>Session Override</th>
                             <th style={{ padding: '0.5rem' }}>ID</th>
                             <th style={{ padding: '0.5rem' }}>Action</th>
                             <th style={{ padding: '0.5rem' }}>Stats</th>
@@ -273,6 +296,29 @@ export default function AdminDashboard() {
                                             <option key={p} value={p}>{p}</option>
                                         ))}
                                     </select>
+                                </td>
+                                <td style={{ padding: '0.5rem' }}>
+                                    <select
+                                        value={user.preferences?.forceSessionType || ''}
+                                        onChange={(e) => updateSessionType(user._id, e.target.value)}
+                                        style={{
+                                            background: '#333',
+                                            color: 'white',
+                                            border: '1px solid #555',
+                                            padding: '0.25rem',
+                                            borderRadius: '4px',
+                                            fontSize: '0.9rem',
+                                            width: '120px'
+                                        }}
+                                    >
+                                        <option value="">Auto</option>
+                                        {Object.values(SessionType).map((t) => (
+                                            <option key={t} value={t}>{t}</option>
+                                        ))}
+                                    </select>
+                                    <div style={{ fontSize: '0.7rem', color: '#888', marginTop: '4px' }}>
+                                        Total: {user.totalSessionsPlayed || 0}
+                                    </div>
                                 </td>
                                 <td style={{ padding: '0.5rem', fontFamily: 'monospace', color: '#555' }}>
                                     {user._id}

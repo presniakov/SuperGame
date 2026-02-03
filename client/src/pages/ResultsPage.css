@@ -226,6 +226,10 @@
     gap: 10px;
 }
 
+.span-2 {
+    grid-column: span 2;
+}
+
 .stat-item {
     display: flex;
     flex-direction: column;

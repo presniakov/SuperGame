@@ -12,6 +12,7 @@ import {
 } from 'chart.js';
 import { Scatter, Line } from 'react-chartjs-2';
 import type { IGameResult } from '../types';
+import { SessionType } from '../types';
 import './ResultsPage.css';
 
 ChartJS.register(
@@ -70,6 +71,12 @@ export default function ResultsPage({ onBack, theme }: ResultsPageProps) {
             }
         } catch (err) {
             console.error('Failed to fetch history', err);
+            // If 401, maybe redirect or just show empty?
+            // Auth issues handled by App usually, but if we are here...
+            if (err instanceof Error && err.message.includes('401')) {
+                // Should potentially trigger logout?
+                // For now just stop loading
+            }
         } finally {
             setLoading(false);
         }
@@ -91,7 +98,7 @@ export default function ResultsPage({ onBack, theme }: ResultsPageProps) {
         if (!selectedResult) return { datasets: [] };
 
         const points = selectedResult.eventLog.map(e => ({
-            x: e.timeOffset,
+            x: e.timeOffset / 1000,
             y: e.speed,
             result: e.result,
             isDouble: e.eventType === 'double'
@@ -150,8 +157,11 @@ export default function ResultsPage({ onBack, theme }: ResultsPageProps) {
         },
         scales: {
             x: {
-                title: { display: true, text: 'Time (ms)', color: themeColors.text },
-                ticks: { color: themeColors.text },
+                title: { display: true, text: 'Time (s)', color: themeColors.text },
+                ticks: {
+                    color: themeColors.text,
+                    callback: (val: number | string) => typeof val === 'number' ? val.toFixed(3) : val
+                },
                 grid: { color: 'rgba(255,255,255,0.1)' }
             },
             y: {
@@ -228,6 +238,19 @@ export default function ResultsPage({ onBack, theme }: ResultsPageProps) {
                             <h3>Session Statistics</h3>
                             {selectedResult?.statistics ? (
                                 <div className="stats-grid">
+                                    <div className="stat-item span-2">
+                                        <span className="label">Session Type</span>
+                                        <span className="value highlight">{selectedResult.sessionType || 'The Grind'}</span>
+                                        {selectedResult.userProfile && (
+                                            <span className="sub-value" style={{ display: 'block', fontSize: '0.8em', color: '#888', marginTop: '4px' }}>
+                                                Profile: {selectedResult.userProfile}
+                                            </span>
+                                        )}
+                                    </div>
+                                    <div className="stat-item">
+                                        <span className="label">Session #</span>
+                                        <span className="value highlight">{selectedResult.sessionNumber ? `#${selectedResult.sessionNumber}` : '-'}</span>
+                                    </div>
                                     <div className="stat-item">
                                         <span className="label">Start Speed</span>
                                         <span className="value">{selectedResult.statistics.startSpeed}</span>
@@ -244,14 +267,23 @@ export default function ResultsPage({ onBack, theme }: ResultsPageProps) {
                                         <span className="label">Total Score</span>
                                         <span className="value">{selectedResult.statistics.totalScore || 0}</span>
                                     </div>
-                                    <div className="stat-item">
-                                        <span className="label">Error Rate (First 2/3)</span>
-                                        <span className="value">{selectedResult.statistics.errorRateFirst23.toFixed(1)}%</span>
-                                    </div>
-                                    <div className="stat-item">
-                                        <span className="label">Error Rate (Last 1/3)</span>
-                                        <span className="value">{selectedResult.statistics.errorRateLast13.toFixed(1)}%</span>
-                                    </div>
+                                    {selectedResult.sessionType !== SessionType.CALIBRATION ? (
+                                        <>
+                                            <div className="stat-item">
+                                                <span className="label">Error Rate (First 2/3)</span>
+                                                <span className="value">{selectedResult.statistics.errorRateFirst23.toFixed(1)}%</span>
+                                            </div>
+                                            <div className="stat-item">
+                                                <span className="label">Error Rate (Last 1/3)</span>
+                                                <span className="value">{selectedResult.statistics.errorRateLast13.toFixed(1)}%</span>
+                                            </div>
+                                        </>
+                                    ) : (
+                                        <div className="stat-item span-2">
+                                            <span className="label">Total Error Rate</span>
+                                            <span className="value">{(selectedResult.statistics.totalErrorRate || 0).toFixed(1)}%</span>
+                                        </div>
+                                    )}
                                 </div>
                             ) : (
                                 <p className="no-data">No statistics available</p>

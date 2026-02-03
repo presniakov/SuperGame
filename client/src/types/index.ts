@@ -54,11 +54,15 @@ export interface IGameResult {
         startSpeed: number;
         maxSpeed: number;
         totalScore: number;
+        totalErrorRate: number;
         errorRateFirst23: number;
         errorRateLast13: number;
     };
     eventLog: GameHistoryEvent[];
     duration: number;
+    sessionType?: string;
+    sessionNumber?: number;
+    userProfile?: string;
 }
 
 export const ProfileType = {
@@ -70,3 +74,14 @@ export const ProfileType = {
 } as const;
 
 export type ProfileType = typeof ProfileType[keyof typeof ProfileType];
+
+export const SessionType = {
+    CALIBRATION: 'Calibration',
+    GRIND: 'The Grind',
+    BREAKTHROUGH: 'The Breakthrough',
+    RECOVERY: 'Recovery'
+} as const;
+
+export type SessionType = typeof SessionType[keyof typeof SessionType];
+
+

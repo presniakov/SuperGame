@@ -9,8 +9,9 @@ export interface IGameEvent {
     eventDuration: number;
 }
 
+// Interface
 export interface IGameResult extends Document {
-    userId: mongoose.Types.ObjectId; // Optional for now if no auth enforcement
+    userId: mongoose.Types.ObjectId;
     date: Date;
     statistics?: {
         startSpeed: number;
@@ -18,17 +19,25 @@ export interface IGameResult extends Document {
         totalScore: number;
         errorRateFirst23: number;
         errorRateLast13: number;
+        totalErrorRate: number;
     };
     eventLog: IGameEvent[];
+    sessionType?: string;
+    sessionNumber?: number;
+    userProfile?: string;
 }
 
 const GameResultSchema: Schema = new Schema({
-    userId: { type: Schema.Types.ObjectId, ref: 'User' }, // Can be null for guest?
+    userId: { type: Schema.Types.ObjectId, ref: 'User' },
     date: { type: Date, default: Date.now },
+    sessionType: { type: String, default: 'The Grind' },
+    sessionNumber: { type: Number },
+    userProfile: { type: String },
     statistics: {
         startSpeed: Number,
         maxSpeed: Number,
         totalScore: Number,
+        totalErrorRate: Number,
         errorRateFirst23: Number,
         errorRateLast13: Number
     },
