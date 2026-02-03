@@ -28,6 +28,7 @@ function GameContainer() {
     const saved = localStorage.getItem('site-theme');
     return (saved === 'cyber' || saved === 'hi-tech' || saved === 'steam') ? (saved as GameStyle) : 'cyber';
   });
+  const [userProfile, setUserProfile] = useState<string>('Candidate');
 
   const [view, setView] = useState<'landing' | 'menu' | 'game' | 'result' | 'history' | 'tutorial' | 'coming-soon'>(() => {
     if (isDevAccess) return 'landing';
@@ -54,6 +55,9 @@ function GameContainer() {
           }
           if (data.role) {
             setUserRole(data.role);
+          }
+          if (data.preferences?.profile) {
+            setUserProfile(data.preferences.profile);
           }
         })
         .catch(console.error);
@@ -98,6 +102,12 @@ function GameContainer() {
     } else {
       setGameStyle('cyber');
     }
+
+    // Type assertion or check might be needed if preferences is any
+    if ((preferences as any)?.profile) {
+      setUserProfile((preferences as any).profile);
+    }
+
     setView('menu');
   };
 
@@ -108,6 +118,7 @@ function GameContainer() {
     setUsername('');
     setUserId('');
     setUserRole('user');
+    setUserProfile('Candidate');
     setView('landing');
   };
 
@@ -186,6 +197,7 @@ function GameContainer() {
         onViewTutorial={() => setView('tutorial')}
         onLogout={handleLogout}
         isAdmin={userRole === 'admin'}
+        userProfile={userProfile}
       />
     );
   }

@@ -1,4 +1,5 @@
 import mongoose, { Schema, Document } from 'mongoose';
+import { ProfileType } from '../games/GameProfiles';
 
 export interface IUser extends Document {
     username: string;
@@ -6,6 +7,7 @@ export interface IUser extends Document {
     preferences: {
         theme: { type: String, default: 'cyber' },
         startSpeed?: number;
+        profile: ProfileType;
     };
     role: 'user' | 'admin';
     statistics?: {
@@ -20,7 +22,12 @@ const UserSchema: Schema = new Schema({
     password: { type: String, required: true },
     preferences: {
         theme: { type: String, default: 'cyber' },
-        startSpeed: { type: Number, default: 40 }
+        startSpeed: { type: Number, default: 40 },
+        profile: {
+            type: String,
+            enum: Object.values(ProfileType),
+            default: ProfileType.CASUAL
+        }
     },
     role: {
         type: String,

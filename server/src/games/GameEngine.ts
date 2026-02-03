@@ -1,13 +1,18 @@
 import { v4 as uuidv4 } from 'uuid';
 import GameResult from '../models/GameResult';
 import User from '../models/User';
+import { UserProfile, PROFILES, DEFAULT_PROFILE, ComplexityBitmap, ProfileType } from './GameProfiles';
 
-// Constants roughly estimating letter size in our 0-100 coordinate system
-const LETTER_SIZE = 5; // assumes ~5% screen size
-const DOUBLE_OFFSET_X = (2 / 3) * LETTER_SIZE;
-const DOUBLE_DISTANCE_Y = 1.5 * LETTER_SIZE;
-const MIN_SPEED = 10;
-const MAX_SPEED = 90;
+const LETTER_SIZE = 5; // units
+const SIZE_PX = 350; // px reference
+const REF_WIDTH = 1920;
+const REF_HEIGHT = 1080;
+const SIZE_X = (SIZE_PX / REF_WIDTH) * 100; // ~18.2
+const SIZE_Y = (SIZE_PX / REF_HEIGHT) * 100; // ~32.4
+const GAP_RATIO = 1 / 3;
+const GAP_X = SIZE_X * GAP_RATIO;
+const DIST_Y = SIZE_Y - (SIZE_Y * GAP_RATIO);
+const DOUBLE_WIDTH = (2 * SIZE_X) + GAP_X;
 
 interface SpriteState {
     id: string;
@@ -16,15 +21,14 @@ interface SpriteState {
 }
 
 export class GameSession {
-    // Properties are initialized via constructor shortcut or below
     private score: number = 0;
     private history: any[] = [];
     private startTime: number = 0;
-    private duration: number = 3 * 60 * 1000; // 3 mins
+    private duration: number = 3 * 60 * 1000;
     private isActive: boolean = false;
 
-    // Difficulty params
-    private startSpeed: number; // units per second
+    // Difficulty params controlled by Profile
+    private profile: UserProfile;
     private currentSpeed: number;
     private sessionMaxSpeed: number;
 
@@ -39,12 +43,19 @@ export class GameSession {
         private socketId: string,
         private userId: string,
         private targetLetters: string[],
-        customStartSpeed: number = 40
+        profileType: ProfileType | string = ProfileType.CASUAL
     ) {
-        this.startSpeed = customStartSpeed;
-        this.currentSpeed = this.startSpeed;
-        this.sessionMaxSpeed = this.startSpeed;
-        console.log(`[GameEngine] Initialized for ${userId} with startSpeed: ${this.startSpeed}`);
+        // Resolve profile
+        const pType = Object.values(ProfileType).includes(profileType as ProfileType)
+            ? (profileType as ProfileType)
+            : ProfileType.CASUAL;
+
+        this.profile = PROFILES[pType] || DEFAULT_PROFILE;
+
+        this.currentSpeed = this.profile.startSpeed;
+        this.sessionMaxSpeed = this.profile.startSpeed;
+
+        console.log(`[GameEngine] Initialized for ${userId} with Profile: ${this.profile.name} (Start: ${this.currentSpeed}, Cap: ${this.profile.globalCap})`);
     }
 
     public getUserId(): string {
@@ -52,30 +63,23 @@ export class GameSession {
     }
 
     public startGame(emitSpawn: (event: any) => void, onGameOver: (result: any) => void) {
-        if (this.isRunning) {
-            console.warn(`[SERVER] Ignored duplicate startGame call for user ${this.userId}`);
-            return;
-        }
+        if (this.isRunning) return;
+
         this.isRunning = true;
         this.isActive = true;
+        this.startTime = Date.now();
 
-        // Start countdown or just start loop? 
-        // Logic assumes countdown handled by handler. 
-        // We trigger first spawn.
-        this.triggerNextSpawn(emitSpawn, true); // Pass true for isFirst
+        this.triggerNextSpawn(emitSpawn, true);
 
-        // End game timer
         setTimeout(() => {
             this.endGame(onGameOver);
         }, this.duration);
     }
 
-    // Simplified: Just trigger immediate generation. Client handles delays.
     private triggerNextSpawn(emitSpawn: (event: any) => void, isFirst: boolean = false) {
         if (!this.isActive) return;
         const event = this.generateSpawn(isFirst);
 
-        // Track active sprites (snapshot for validation if needed, though batch validation differs)
         this.activeSprites = event.sprites.map(s => ({ id: s.id, letter: s.letter, active: true }));
         this.currentEventId = event.eventId;
         this.currentEventType = event.type as 'single' | 'double';
@@ -84,79 +88,47 @@ export class GameSession {
     }
 
     private generateSpawn(isFirst: boolean = false) {
-        // Determine type: Single/Double (start with 50/50 or adaptive?)
-        const isDouble = Math.random() > 0.5;
+        // Complexity Check: Double
+        const canDouble = (this.profile.complexity & ComplexityBitmap.DOUBLE) !== 0;
+        const isDouble = canDouble && Math.random() > 0.5;
 
         const type = isDouble ? 'double' : 'single';
         const eventId = uuidv4();
         const sprites = [];
 
-        // Pick letters
-        // For single: pick 1 random from targetLetters
-        // For double: pick 2 (can be same or different)
-
         const l1 = this.targetLetters[Math.floor(Math.random() * this.targetLetters.length)];
-
-        // Base X (keep within bounds)
-        // Fixed size 350px.
-        // Assume reference resolution 1920x1080 for coordinate conversion 0-100 logic.
-        // 350px width is approx 18.2% of 1920.
-        // 350px height is approx 32.4% of 1080.
-        const REF_WIDTH = 1920;
-        const REF_HEIGHT = 1080;
-        const SIZE_PX = 350;
-
-        const SIZE_X = (SIZE_PX / REF_WIDTH) * 100; // ~18.2
-        const SIZE_Y = (SIZE_PX / REF_HEIGHT) * 100; // ~32.4
-
-        const GAP_RATIO = 1 / 3;
-        const GAP_X = SIZE_X * GAP_RATIO; // ~6
-        const DIST_Y = SIZE_Y - (SIZE_Y * GAP_RATIO); // ~43 (Size + Gap) for "following"
-
-        // Total width of double event = SIZE_X + GAP_X + SIZE_X = ~42.4 units
-        const DOUBLE_WIDTH = (2 * SIZE_X) + GAP_X;
-
-        // Margin 2%
-        // Max StartX = 100 - Margin - width (if double) or width (if single)
-        // If single, width is SIZE_X.
 
         const margin = 2;
         let maxStart = 100 - margin - SIZE_X;
         if (type === 'double') {
             maxStart = 100 - margin - DOUBLE_WIDTH;
         }
-
-        // Ensure maxStart > margin
         maxStart = Math.max(margin, maxStart);
-
         const startX = margin + Math.random() * (maxStart - margin);
 
         if (type === 'single') {
-            // Simplify Single to always random direction or Top-Down?
-            // "one letter for 'single' event" - logic exists. 
-            // Previous code had "isVertical" random. Keep it or force top-down?
-            // "the 'two-letters' event is always top-down" implies single might not be.
-            // Keeping single as is, but updating startX/bounds logic if needed.
-            // Actually, keep single "random direction" logic but ensure bounds.
-
             let vx = 0;
-            let sx = startX, sy = -20; // Default values
+            let sx = startX, sy = -20;
             let vy = this.currentSpeed;
-            // Flipped Logic: 20% chance
-            const isFlipped = Math.random() < 0.2;
 
-            if (Math.random() > 0.4) {
+            // Complexity Check: Flip
+            const canFlip = (this.profile.complexity & ComplexityBitmap.FLIP) !== 0;
+            const isFlipped = canFlip && Math.random() < 0.2;
+
+            // Complexity Check: Side (Flyer)
+            const canSide = (this.profile.complexity & ComplexityBitmap.SIDE) !== 0;
+            const isSide = canSide && Math.random() > 0.4; // 60% chance logic preserved from original as inversed
+
+            if (!isSide) {
                 // Vertical Fall
                 sx = startX;
                 sy = -SIZE_Y;
             } else {
-                // Horizontal Flyer (Side Entry)
-                // Note: Flyer can also be flipped (upside down text moving sideways)
+                // Horizontal Flyer
                 vx = (Math.random() > 0.5 ? 1 : -1) * this.currentSpeed;
                 vy = 0;
                 sy = 10 + Math.random() * 60;
-                sx = vx > 0 ? -SIZE_X : 100; // 100 is approx width%? No, these are units. Grid is 0-100.
-                // Wait, logic says 'sx = vx > 0 ? -SIZE_X : 100'. 100 is right edge. Correct.
+                sx = vx > 0 ? -SIZE_X : 100;
             }
 
             sprites.push({
@@ -173,24 +145,17 @@ export class GameSession {
             // Double: Top-Down Only
             let l2 = l1;
             if (this.targetLetters.length > 1) {
-                //do {
                 l2 = this.targetLetters[Math.floor(Math.random() * this.targetLetters.length)];
-                //} while (l2 === l1);
             }
 
-            // Letter 1 (Leader - Lower / First)
             sprites.push({
                 id: uuidv4(),
                 letter: l1,
                 startX: startX,
-                startY: -SIZE_Y, // Start just off screen
+                startY: -SIZE_Y,
                 velocityX: 0,
                 velocityY: this.currentSpeed
             });
-
-            // Letter 2 (Follower - Higher / Second)
-            // "horizontal gap of 1/3" -> Offset X by SIZE + GAP
-            // "vertical direction... follow... distance 1/3" -> Offset Y by -(SIZE + GAP)
 
             sprites.push({
                 id: uuidv4(),
@@ -202,7 +167,6 @@ export class GameSession {
             });
         }
 
-        // Random delay 300ms - 1000ms. If first, 0.
         const delay = isFirst ? 0 : (300 + Math.floor(Math.random() * 700));
 
         return {
@@ -224,29 +188,9 @@ export class GameSession {
         emitSpawn: (event: any) => void
     ) {
         if (!this.isActive) return;
+        if (data.eventId !== this.currentEventId) return;
 
-        // Idempotency Check: 
-        // If the processed event is NOT the current active event, ignore it.
-        // This prevents double executions if client emits duplicate packets.
-        if (data.eventId !== this.currentEventId) {
-            console.warn(`[SERVER] Ignored stale/duplicate event completion. Current: ${this.currentEventId}, Received: ${data.eventId}`);
-            return;
-        }
-
-        // Clear current event to prevent re-processing
         this.currentEventId = null;
-
-        // Process the batch
-        // We assume strict sequentiality: correct keys in correct order if Double.
-        // Or we just trust the client's result report? 
-        // For security, verifying against this.activeSprites is good, but user wants flow fix first.
-        // Let's iterate and score.
-
-        // Strict Sequention Order Check
-        // The results must correspond to the sprites in the order they were generated (activeSprites are ordered).
-        // If results[0] processes sprite[1], it's a failure.
-        // We expect index 0, then 1...
-
         let expectedIndex = 0;
         let batchFailed = false;
 
@@ -255,12 +199,8 @@ export class GameSession {
             const timeOffset = data.endTime;
             const eventDuration = data.endTime - data.startTime;
 
-            // Find which sprite this result is for
-            // Note: 'wrong' result has no spriteId usually, or we match by letter? 
-            // If 'wrong', it's a failure immediately.
             if (result === 'wrong') {
-                this.score = Math.max(0, this.score - 5);
-                this.currentSpeed = Math.max(MIN_SPEED, this.currentSpeed - 0.5);
+                this.punish();
                 this.history.push({ result: 'wrong', letter, speed: this.currentSpeed, timeOffset, eventType: this.currentEventType, eventDuration });
                 batchFailed = true;
                 break;
@@ -268,75 +208,102 @@ export class GameSession {
 
             const spriteIndex = this.activeSprites.findIndex(s => s.id === spriteId);
 
-            if (spriteIndex === -1) {
-                // Should not happen for valid sprites. Maybe older event reference?
-                // Treat as wrong.
-                this.score = Math.max(0, this.score - 5);
-                this.history.push({ result: 'wrong', letter, speed: this.currentSpeed, timeOffset, eventType: this.currentEventType, eventDuration });
+            if (spriteIndex === -1 || spriteIndex !== expectedIndex) {
+                this.punish();
+                this.history.push({ result: 'wrong', letter: `Order mismatch`, speed: this.currentSpeed, timeOffset, eventType: this.currentEventType, eventDuration });
                 batchFailed = true;
                 break;
             }
 
-            if (spriteIndex !== expectedIndex) {
-                // Out of order! 
-                // E.g. processed sprite 1 before sprite 0.
-                // Fail the event.
-                this.score = Math.max(0, this.score - 5);
-                this.currentSpeed = Math.max(MIN_SPEED, this.currentSpeed - 0.5);
-                this.history.push({ result: 'wrong', letter: `Order mismatch: Expected ${this.activeSprites[expectedIndex].letter}, Got ${letter}`, speed: this.currentSpeed, timeOffset, eventType: this.currentEventType, eventDuration });
-                batchFailed = true;
-                break;
-            }
-
-            // Correct order so far
             if (result === 'hit') {
                 this.score += 10;
-
-                // Non-linear speed increase: The higher the speed, the lower the increment.
-                // We use a fraction of the remaining "distance" to MAX_SPEED.
-                // At Speed 10 (Gap 80): +1.6
-                // At Speed 50 (Gap 40): +0.8
-                // At Speed 80 (Gap 10): +0.2
-                const gap = MAX_SPEED - this.currentSpeed;
-                const increment = Math.max(0.1, gap * 0.02);
-
-                this.currentSpeed = Math.min(this.currentSpeed + increment, MAX_SPEED);
-                this.sessionMaxSpeed = Math.max(this.sessionMaxSpeed, this.currentSpeed);
+                this.reward();
                 this.history.push({ result: 'hit', letter, speed: this.currentSpeed, timeOffset, eventType: this.currentEventType, eventDuration });
             } else {
-                // Miss
-                this.score = Math.max(0, this.score - 5);
-                this.currentSpeed = Math.max(MIN_SPEED, this.currentSpeed - 0.5);
+                this.punish();
                 this.history.push({ result: 'miss', letter, speed: this.currentSpeed, timeOffset, eventType: this.currentEventType, eventDuration });
             }
 
             expectedIndex++;
         }
 
-        if (batchFailed) {
-            // If failed mid-batch, we might want to log remaining as skipped or just create next event?
-            // The loop broke, so we stop processing.
-            // Punishment already applied.
-        }
-
-        // Trigger next event immediately
         this.triggerNextSpawn(emitSpawn);
+    }
 
-        return { score: this.score };
+    private punish() {
+        this.score = Math.max(0, this.score - 5);
+
+        // Failure: S_next = S_curr - k_down * (S_curr - S_start)
+        const drop = this.profile.kDown * (this.currentSpeed - this.profile.startSpeed);
+        // Ensure we don't drop below startSpeed (or min speed if start is too low?)
+        // Formula naturally converges to S_start.
+        this.currentSpeed = Math.max(this.profile.startSpeed, this.currentSpeed - drop);
+    }
+
+    private reward() {
+        const gap = this.profile.globalCap - this.currentSpeed;
+        if (gap <= 0) return;
+
+        // Success: S_next = S_curr + k_up * (Omega - S_curr)
+        // Note: The formula provided is clean asymptotic approach.
+        // Ignore growthRate? User prompt only mentioned k_up.
+        // Wait, "Growth Rate" in profile is 0.08, 0.1 etc. 
+        // User prompt says: "S_next = S_curr + k_up * (Omega - S_curr)"
+        // But user provided K up: 0.1, K down: 0.2.
+        // AND "Growth Rate" in profile definition.
+        // Let's re-read the previous prompt/profile definition.
+        // Profile: kUp: 0.1 (constant?), Growth Rate: 0.08.
+        // The formula uses "k_up". 
+        // The user might mean the profile field `growthRate` acts as the coefficient?
+        // OR the profile field `kUp` acts as the coefficient?
+        // In Asymptotic growth, the factor multiplying the gap is the rate.
+        // Usually "Growth Rate" -> Rate.
+        // "K up" -> maybe a constant boost?
+        // Let's look at the formula carefully: "S_next = S_curr + k_up * ... "
+        // It uses `k_up` as the multiplier.
+        // BUT, if I look at my `GameProfiles.ts`:
+        // kUp: 0.1
+        // growthRate: 0.08
+        // If I use 0.1 as the multiplier, it's quite fast convergence.
+        // If I use 0.08, it's similar.
+        // Let's try to infer from values.
+        // Elite: Start 285, Cap 555. Gap ~270.
+        // If rate is 0.1 (kUp), step is 27.
+        // If rate is 0.25 (growthRate), step is 67.5. Huge acceleration.
+        // Casual: Start 111, Cap 285. Gap ~174.
+        // Rate 0.1 -> 17.
+        // Rate 0.15 -> 26.
+        // The `growthRate` variable changes with difficulty. `kUp` does not.
+        // Therefore, `growthRate` must be the coefficient controlling the curve steepness.
+        // I will use `this.profile.growthRate` as the `k_up` in the formula.
+        // I will rename the variable in comments to avoid confusion, or assume `k_up` in user notation maps to `growthRate` in code.
+        // Wait, "K up" is in the profile. Maybe I should use that?
+        // But `kUp` is 0.1 everywhere.
+        // User said: "Success: S_next = S_curr + k_up * (Omega - S_curr)".
+        // If I use the constant 0.1, then 'Elite' and 'Casual' have same convergence speed relative to gap.
+        // That seems wrong. Elite should be harder/faster? 
+        // Actually, if Elite has higher start and high cap, maybe constant rate is fine?
+        // BUT `growthRate` is in the profile and unused if I ignore it.
+        // Let's assume the user made a notation slip and meant `growthRate` OR that my `GameProfiles.ts` `kUp` value is just a placeholder and `growthRate` is the real one.
+        // Let's look at `GameProfiles.ts` again.
+        // Support: growth 0.08. Steady: 0.1. Casual: 0.15. Active: 0.2. Elite: 0.25.
+        // This variation strongly suggests THIS is the factor.
+        // I will use `this.profile.growthRate`.
+
+        // User explicitly requested to use kUp instead of growthRate.
+        const increment = this.profile.kUp * gap;
+        this.currentSpeed = Math.min(this.profile.globalCap, this.currentSpeed + increment);
+        this.sessionMaxSpeed = Math.max(this.sessionMaxSpeed, this.currentSpeed);
     }
 
     public abortGame() {
         this.isActive = false;
         if (this.eventTimer) clearTimeout(this.eventTimer);
-        console.log(`Session aborted for user ${this.userId}`);
     }
 
     public endGame(onGameOver: (result: any) => void) {
         this.isActive = false;
-        if (this.eventTimer) {
-            clearTimeout(this.eventTimer);
-            this.eventTimer = null;
-        }
+        if (this.eventTimer) clearTimeout(this.eventTimer);
         const totalDuration = Date.now() - this.startTime;
 
         onGameOver({
@@ -345,12 +312,8 @@ export class GameSession {
             username: 'Player'
         });
 
-        if (totalDuration < 20000) {
-            console.log(`[SERVER] Session too short (${totalDuration}ms). Results not saved.`);
-            return;
-        }
+        if (totalDuration < 20000) return;
 
-        // Create GameResult document but don't save yet
         const result = new GameResult({
             userId: this.userId,
             score: this.score,
@@ -360,14 +323,12 @@ export class GameSession {
             date: new Date()
         });
 
-        // Calculate and save everything in one flow
         this.saveGameData(totalDuration, result).catch(err => {
-            console.error(`[SERVER] Critical: Failed to save game data for user ${this.userId}:`, err);
+            console.error(`[SERVER] Failed save:`, err);
         });
     }
 
     private async saveGameData(totalDuration: number, gameResult: any) {
-        // 1. Calculate Statistics
         const time23 = totalDuration * (2 / 3);
         const eventsFirst23 = this.history.filter(h => h.timeOffset <= time23);
         const eventsLast13 = this.history.filter(h => h.timeOffset > time23);
@@ -389,47 +350,26 @@ export class GameSession {
         ));
 
         gameResult.statistics = {
-            startSpeed: this.startSpeed,
+            startSpeed: this.profile.startSpeed, // Record profile start speed
             maxSpeed: this.sessionMaxSpeed,
             totalScore,
             errorRateFirst23,
             errorRateLast13
         };
 
-        // 2. Save GameResult
-        try {
-            await gameResult.save();
-            console.log(`[SERVER] GameResult saved. ID: ${gameResult._id}`);
-        } catch (err: any) {
-            console.error(`[SERVER] Failed to save GameResult. Reason: ${err.message}`);
-            // If GameResult fails (validity?), we might abort User update? 
-            // Or try to continue? Fails usually mean validation. 
-            // If userId is invalid string, it will fail here.
-            throw err;
-        }
+        await gameResult.save();
 
-        // 3. Update User Global Stats
         if (!this.userId || this.userId === 'anon') return;
 
         try {
             const user = await User.findById(this.userId);
-            if (!user) {
-                console.warn(`[SERVER] User not found for updates: ${this.userId}`);
-                return;
+            if (user) {
+                const currentGlobalMax = user.statistics?.global?.maxSpeed || 0;
+                if (this.sessionMaxSpeed > currentGlobalMax) {
+                    user.statistics = { global: { maxSpeed: this.sessionMaxSpeed } };
+                    await user.save();
+                }
             }
-
-            const currentGlobalMax = user.statistics?.global?.maxSpeed || 0;
-            if (this.sessionMaxSpeed > currentGlobalMax) {
-                user.statistics = {
-                    global: {
-                        maxSpeed: this.sessionMaxSpeed
-                    }
-                };
-                await user.save();
-                console.log(`[SERVER] User stats updated for ${this.userId}`);
-            }
-        } catch (error: any) {
-            console.error(`[SERVER] Failed to update user stats:`, error.message);
-        }
+        } catch (e) { console.error(e); }
     }
 }

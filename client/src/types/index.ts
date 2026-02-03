@@ -60,3 +60,13 @@ export interface IGameResult {
     eventLog: GameHistoryEvent[];
     duration: number;
 }
+
+export const ProfileType = {
+    SUPPORT: 'Support',
+    STEADY: 'Steady',
+    CASUAL: 'Casual',
+    ACTIVE: 'Active',
+    ELITE: 'Elite'
+} as const;
+
+export type ProfileType = typeof ProfileType[keyof typeof ProfileType];

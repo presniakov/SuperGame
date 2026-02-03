@@ -22,11 +22,12 @@ router.get('/me', auth, async (req: any, res) => {
 router.put('/preferences', auth, async (req: any, res) => {
     try {
         const userId = req.user.id;
-        const { theme, startSpeed } = req.body;
+        const { theme, startSpeed, profile } = req.body;
 
         const updateData: any = {};
         if (theme) updateData['preferences.theme'] = theme;
         if (startSpeed !== undefined) updateData['preferences.startSpeed'] = startSpeed;
+        if (profile) updateData['preferences.profile'] = profile;
 
         if (Object.keys(updateData).length === 0) {
             return res.status(400).json({ message: 'No preferences provided to update' });
@@ -45,6 +46,37 @@ router.put('/preferences', auth, async (req: any, res) => {
         res.json({ message: 'Preferences updated', preferences: user.preferences });
     } catch (error) {
         console.error('Error updating preferences:', error);
+        res.status(500).json({ message: 'Server error' });
+    }
+});
+
+// ADMIN: Update specific user preferences
+router.patch('/:id/preferences', auth, async (req: any, res) => {
+    try {
+        if (req.user.role !== 'admin') {
+            return res.status(403).json({ message: 'Access denied: Admins only' });
+        }
+
+        const userId = req.params.id;
+        const { profile } = req.body;
+
+        if (!profile) {
+            return res.status(400).json({ message: 'Profile is required' });
+        }
+
+        const user = await User.findByIdAndUpdate(
+            userId,
+            { $set: { 'preferences.profile': profile } },
+            { new: true }
+        ).select('-password');
+
+        if (!user) {
+            return res.status(404).json({ message: 'User not found' });
+        }
+
+        res.json(user);
+    } catch (error) {
+        console.error('Error updating user preferences:', error);
         res.status(500).json({ message: 'Server error' });
     }
 });

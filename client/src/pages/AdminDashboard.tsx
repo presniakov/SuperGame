@@ -1,6 +1,6 @@
 
-
 import { useEffect, useState, useCallback } from 'react';
+import { ProfileType } from '../types';
 import type { IGameResult } from '../types';
 
 interface User {
@@ -8,6 +8,9 @@ interface User {
     username: string;
     role: string;
     date: string;
+    preferences?: {
+        profile: ProfileType;
+    };
 }
 
 export default function AdminDashboard() {
@@ -44,7 +47,7 @@ export default function AdminDashboard() {
         }
     }, [API_BASE, token]);
 
-    const [configSpeed, setConfigSpeed] = useState(40);
+    const [configProfile, setConfigProfile] = useState<ProfileType>(ProfileType.CASUAL);
 
     const fetchConfig = useCallback(async () => {
         try {
@@ -53,8 +56,8 @@ export default function AdminDashboard() {
             });
             if (res.ok) {
                 const data = await res.json();
-                if (data.preferences?.startSpeed) {
-                    setConfigSpeed(data.preferences.startSpeed);
+                if (data.preferences?.profile) {
+                    setConfigProfile(data.preferences.profile);
                 }
             }
         } catch (e: unknown) {
@@ -70,10 +73,10 @@ export default function AdminDashboard() {
                     'Content-Type': 'application/json',
                     'x-auth-token': token || ''
                 },
-                body: JSON.stringify({ startSpeed: parseInt(String(configSpeed)) })
+                body: JSON.stringify({ profile: configProfile })
             });
             if (res.ok) {
-                alert('Start Speed Saved!');
+                alert('Profile Saved!');
             } else {
                 alert('Failed to save.');
             }
@@ -103,6 +106,23 @@ export default function AdminDashboard() {
             fetchUsers();
         } catch {
             alert('Failed to update role');
+        }
+    };
+
+    const updateProfile = async (userId: string, newProfile: ProfileType) => {
+        try {
+            const res = await fetch(`${API_BASE}/api/user/${userId}/preferences`, {
+                method: 'PATCH',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'x-auth-token': token || ''
+                },
+                body: JSON.stringify({ profile: newProfile })
+            });
+            if (!res.ok) throw new Error('Failed to update profile');
+            fetchUsers();
+        } catch {
+            alert('Failed to update profile');
         }
     };
 
@@ -172,13 +192,16 @@ export default function AdminDashboard() {
             }}>
                 <h3 style={{ borderBottom: '1px solid #333', paddingBottom: '1rem' }}>Game Configuration</h3>
                 <div style={{ marginTop: '1rem', display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                    <label>Next Session Start Speed:</label>
-                    <input
-                        type="number"
-                        value={configSpeed}
-                        onChange={(e) => setConfigSpeed(parseInt(e.target.value))}
+                    <label>User Profile:</label>
+                    <select
+                        value={configProfile}
+                        onChange={(e) => setConfigProfile(e.target.value as ProfileType)}
                         style={{ padding: '0.5rem', borderRadius: '4px', border: '1px solid #555', background: '#333', color: 'white' }}
-                    />
+                    >
+                        {Object.values(ProfileType).map((profile) => (
+                            <option key={profile} value={profile}>{profile}</option>
+                        ))}
+                    </select>
                     <button
                         onClick={saveConfig}
                         style={{
@@ -195,7 +218,7 @@ export default function AdminDashboard() {
                     </button>
                 </div>
                 <p style={{ fontSize: '0.8rem', color: '#888', marginTop: '0.5rem' }}>
-                    This setting applies to YOUR next game session.
+                    This sets the difficulty profile for YOUR next game session.
                 </p>
             </div>
 
@@ -211,6 +234,7 @@ export default function AdminDashboard() {
                         <tr style={{ textAlign: 'left', color: '#888' }}>
                             <th style={{ padding: '0.5rem' }}>Username</th>
                             <th style={{ padding: '0.5rem' }}>Role</th>
+                            <th style={{ padding: '0.5rem' }}>Profile</th>
                             <th style={{ padding: '0.5rem' }}>ID</th>
                             <th style={{ padding: '0.5rem' }}>Action</th>
                             <th style={{ padding: '0.5rem' }}>Stats</th>
@@ -231,6 +255,24 @@ export default function AdminDashboard() {
                                     }}>
                                         {user.role.toUpperCase()}
                                     </span>
+                                </td>
+                                <td style={{ padding: '0.5rem' }}>
+                                    <select
+                                        value={user.preferences?.profile || ProfileType.CASUAL}
+                                        onChange={(e) => updateProfile(user._id, e.target.value as ProfileType)}
+                                        style={{
+                                            background: '#333',
+                                            color: 'white',
+                                            border: '1px solid #555',
+                                            padding: '0.25rem',
+                                            borderRadius: '4px',
+                                            fontSize: '0.9rem'
+                                        }}
+                                    >
+                                        {Object.values(ProfileType).map((p) => (
+                                            <option key={p} value={p}>{p}</option>
+                                        ))}
+                                    </select>
                                 </td>
                                 <td style={{ padding: '0.5rem', fontFamily: 'monospace', color: '#555' }}>
                                     {user._id}

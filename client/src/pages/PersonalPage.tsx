@@ -12,6 +12,7 @@ interface PersonalPageProps {
     onViewTutorial?: () => void;
     onLogout: () => void;
     isAdmin?: boolean;
+    userProfile?: string;
 }
 
 export default function PersonalPage({
@@ -22,7 +23,8 @@ export default function PersonalPage({
     onViewHistory,
     onViewTutorial,
     onLogout,
-    isAdmin
+    isAdmin,
+    userProfile = 'Candidate'
 }: PersonalPageProps) {
     const [letters, setLetters] = useState(['A', 'L']);
 
@@ -70,7 +72,7 @@ export default function PersonalPage({
                     <div className="avatar-circle">{username.substring(0, 2).toUpperCase()}</div>
                     <div>
                         <h1>{username}</h1>
-                        <p className="level-badge">Level 1 • Novice {isAdmin && <span style={{ color: '#ff4444', marginLeft: '5px' }}>• ADMIN</span>}</p>
+                        <p className="level-badge">Level 1 • {userProfile} {isAdmin && <span style={{ color: '#ff4444', marginLeft: '5px' }}>• ADMIN</span>}</p>
                     </div>
                 </div>
                 <div className="header-stats">
