@@ -115,8 +115,8 @@ export default function ResultsPage({ onBack, theme }: ResultsPageProps) {
                 },
                 pointRadius: (ctx: { raw: unknown }) => {
                     const raw = ctx.raw as ChartPoint;
-                    if (!raw) return 5;
-                    return raw.isDouble ? 8 : 5;
+                    if (!raw) return 2.5;
+                    return raw.isDouble ? 4 : 2.5;
                 },
                 pointBorderWidth: (ctx: { raw: unknown }) => {
                     const raw = ctx.raw as ChartPoint;
@@ -167,7 +167,7 @@ export default function ResultsPage({ onBack, theme }: ResultsPageProps) {
             y: {
                 title: { display: true, text: 'Speed', color: themeColors.text },
                 min: 0,
-                max: 500,
+                max: 200,
                 ticks: { color: themeColors.text },
                 grid: { color: 'rgba(255,255,255,0.1)' }
             }
