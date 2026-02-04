@@ -356,9 +356,12 @@ export class GameSession {
     }
 
     private async saveGameData(totalDuration: number, gameResult: any) {
+        // Filter out events excluded from stats (e.g. Cooldown)
+        const validEvents = this.history.filter(h => !h.excludeFromStats);
+
         const time23 = totalDuration * (2 / 3);
-        const eventsFirst23 = this.history.filter(h => h.timeOffset <= time23);
-        const eventsLast13 = this.history.filter(h => h.timeOffset > time23);
+        const eventsFirst23 = validEvents.filter(h => h.timeOffset <= time23);
+        const eventsLast13 = validEvents.filter(h => h.timeOffset > time23);
 
         const calculateErrorRate = (events: any[]) => {
             if (events.length === 0) return 0;
@@ -368,16 +371,20 @@ export class GameSession {
 
         const errorRateFirst23 = calculateErrorRate(eventsFirst23);
         const errorRateLast13 = calculateErrorRate(eventsLast13);
-        const totalErrorRate = calculateErrorRate(this.history);
+        const totalErrorRate = calculateErrorRate(validEvents);
 
+        // Calculate score based on Valid Events only
         const totalScore = Math.max(0, Math.floor(
             (this.sessionMaxSpeed * 10) +
-            (this.history.length * 5) -
+            (validEvents.length * 5) -
             (totalErrorRate * 20)
         ));
 
         gameResult.statistics = {
             startSpeed: this.actualStartSpeed,
+            // If sessionMaxSpeed was updated during cooldown (though it shouldn't be per rules), 
+            // strictly we might want to track max speed of valid events? 
+            // For now, assume strategy manages maxSpeed correctly or we use current.
             maxSpeed: this.sessionMaxSpeed,
             totalScore,
             totalErrorRate,

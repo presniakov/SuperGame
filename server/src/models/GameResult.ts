@@ -7,6 +7,7 @@ export interface IGameEvent {
     letter: string;
     eventType: 'single' | 'double';
     eventDuration: number;
+    excludeFromStats?: boolean;
 }
 
 // Interface
@@ -47,7 +48,8 @@ const GameResultSchema: Schema = new Schema({
         result: String,
         letter: String,
         eventType: String,
-        eventDuration: Number
+        eventDuration: Number,
+        excludeFromStats: Boolean
     }]
 });
 
