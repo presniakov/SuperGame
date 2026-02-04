@@ -282,7 +282,7 @@ export default function GameCanvas({ socket, onAbort, style = 'cyber', duration 
 
                 if (style === 'steam') {
                     const fontSize = sprite.size || 50;
-                    ctx.font = `bold ${fontSize}px 'Courier New', monospace`;
+                    ctx.font = `bold ${fontSize}px 'Rajdhani', sans-serif`;
                     ctx.fillStyle = "#d97706";
                     ctx.shadowColor = "#000";
                     ctx.shadowBlur = 4;
@@ -330,7 +330,7 @@ export default function GameCanvas({ socket, onAbort, style = 'cyber', duration 
                 position: 'absolute',
                 top: '20px',
                 right: '30px',
-                fontFamily: style === 'steam' ? "'Courier New', monospace" : (style === 'hi-tech' ? "'Consolas', 'Monaco', monospace" : "'Robot Mono', 'Consolas', monospace"),
+                fontFamily: style === 'steam' ? "'Rajdhani', sans-serif" : (style === 'hi-tech' ? "'Consolas', 'Monaco', monospace" : "'Robot Mono', 'Consolas', monospace"),
                 fontSize: '2rem',
                 fontWeight: 'bold',
                 fontVariantNumeric: 'tabular-nums', // Fixed width for digits
@@ -347,6 +347,7 @@ export default function GameCanvas({ socket, onAbort, style = 'cyber', duration 
                     position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)',
                     fontSize: '100px', fontWeight: 'bold',
                     color: style === 'cyber' ? '#fff' : (style === 'steam' ? '#d97706' : '#0f172a'),
+                    fontFamily: style === 'steam' ? "'Rajdhani', sans-serif" : 'inherit',
                     textShadow: style === 'cyber' ? '0 0 20px red' : 'none'
                 }}>
                     {countdown}
