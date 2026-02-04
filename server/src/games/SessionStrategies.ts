@@ -141,6 +141,8 @@ export class GrindStrategy extends BaseStrategy {
     private eventCountInPhase = 0;
     private phaseLoopCount = 0;
     private lastP1Speed = 0;
+    private lastP3Speed = 0;
+    private hasErrorInP4 = false;
     private sprintFailures = 0;
     private timeAtCooldownStart = 0;
 
@@ -370,6 +372,15 @@ export class GrindStrategy extends BaseStrategy {
                     // End of Loop -> Back to P1
                     this.phaseLoopCount++;
                     this.transitionTo(GrindPhase.P1_NORMAL);
+
+                    // Logic: If NO errors in P4, New P1 Start = Last P3 + 5
+                    // Else: New P1 Start = Last P3
+                    // Note: session.getSpeed() currently is P4 Sprint speed (+20). We ignore that.
+                    let nextSpeed = this.lastP3Speed;
+                    if (!this.hasErrorInP4) {
+                        nextSpeed += 5;
+                    }
+                    session.setSpeed(Math.min(globalCap, nextSpeed));
                 }
                 break;
         }
