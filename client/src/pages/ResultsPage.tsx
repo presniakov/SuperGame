@@ -94,6 +94,16 @@ export default function ResultsPage({ onBack, theme }: ResultsPageProps) {
         isDouble: boolean;
     }
 
+    const themeReactionColor = useMemo(() => {
+        // Choose unused contrast color per theme
+        // Cyber: uses Cyan/Pink/Blue. Yellow (#facc15) fits.
+        // Steam: uses Orange/Dark. Green (#10b981) fits.
+        // Hi-Tech: uses Navy/Blue. Red (#ef4444) fits.
+        if (theme === 'steam') return '#10b981';
+        if (theme === 'hi-tech') return '#ef4444';
+        return '#facc15'; // Cyber default
+    }, [theme]);
+
     const scatterData = useMemo(() => {
         if (!selectedResult) return { datasets: [] };
 
@@ -104,29 +114,48 @@ export default function ResultsPage({ onBack, theme }: ResultsPageProps) {
             isDouble: e.eventType === 'double'
         }));
 
+        const reactionPoints = selectedResult.eventLog.map(e => ({
+            x: e.timeOffset / 1000,
+            y: e.eventDuration || 0, // Fallback if missing
+            result: e.result
+        }));
+
         return {
-            datasets: [{
-                label: 'Events',
-                data: points,
-                backgroundColor: (ctx: { raw: unknown }) => {
-                    const raw = ctx.raw as ChartPoint;
-                    if (!raw) return 'gray';
-                    return raw.result === 'hit' ? themeColors.hit : themeColors.miss;
+            datasets: [
+                {
+                    label: 'Speed',
+                    data: points,
+                    backgroundColor: (ctx: { raw: unknown }) => {
+                        const raw = ctx.raw as ChartPoint;
+                        if (!raw) return 'gray';
+                        return raw.result === 'hit' ? themeColors.hit : themeColors.miss;
+                    },
+                    pointRadius: (ctx: { raw: unknown }) => {
+                        const raw = ctx.raw as ChartPoint;
+                        if (!raw) return 2.5;
+                        return raw.isDouble ? 3.5 : 2.5;
+                    },
+                    pointBorderWidth: (ctx: { raw: unknown }) => {
+                        const raw = ctx.raw as ChartPoint;
+                        return raw && raw.isDouble ? 1 : 0;
+                    },
+                    borderColor: '#FFF',
+                    yAxisID: 'y'
                 },
-                pointRadius: (ctx: { raw: unknown }) => {
-                    const raw = ctx.raw as ChartPoint;
-                    if (!raw) return 2.5;
-                    return raw.isDouble ? 4 : 2.5;
-                },
-                pointBorderWidth: (ctx: { raw: unknown }) => {
-                    const raw = ctx.raw as ChartPoint;
-                    return raw && raw.isDouble ? 2 : 0;
-                },
-                borderColor: '#FFF',
-            }]
+                {
+                    label: 'Reaction Time (ms)',
+                    data: reactionPoints,
+                    backgroundColor: themeReactionColor,
+                    pointRadius: 2,
+                    pointHoverRadius: 4,
+                    borderColor: themeReactionColor,
+                    pointStyle: 'rectRot', // Different shape
+                    yAxisID: 'y2'
+                }
+            ]
         };
 
-    }, [selectedResult, themeColors]); // Depend on themeColors
+    }, [selectedResult, themeColors, themeReactionColor]);
 
     // Graph 2: Score Progress
     const progressData = useMemo(() => {
@@ -176,6 +205,31 @@ export default function ResultsPage({ onBack, theme }: ResultsPageProps) {
 
     const scatterOptions = {
         ...chartOptions,
+        scales: {
+            ...chartOptions.scales,
+            x: {
+                ...chartOptions.scales.x,
+                min: 0,
+                max: 200
+            },
+            y: {
+                ...chartOptions.scales.y, // Current Speed axis
+                position: 'left' as const
+            },
+            y2: {
+                type: 'linear' as const,
+                display: true,
+                position: 'right' as const,
+                title: { display: true, text: 'Reaction (ms)', color: themeReactionColor },
+                min: 0,
+                max: 3000,
+                grid: {
+                    drawOnChartArea: false, // Don't clutter grid
+                    color: themeReactionColor
+                },
+                ticks: { color: themeReactionColor }
+            }
+        },
         plugins: {
             ...chartOptions.plugins,
             title: { ...chartOptions.plugins.title, text: 'Speed vs Time' }

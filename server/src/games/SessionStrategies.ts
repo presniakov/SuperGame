@@ -15,6 +15,7 @@ export interface SpawnEventResult {
     size: number;
     delay: number;
     excludeFromStats?: boolean;
+    phase?: string; // Phase name for visibility
 }
 
 export interface SessionStrategy {
@@ -175,51 +176,34 @@ export class GrindStrategy extends BaseStrategy {
 
     generateSpawn(session: GameSession, isFirst: boolean): SpawnEventResult {
         // Cooldown Check (Time-based transition override)
-        // We need to check elapsed time, but we don't have it here directly without passing it or tracking start.
-        // However, `shouldEndSession` checks duration. 
-        // We can check if we hit main duration.
-        // Note: We need session start time to check cooldown transition efficiently.
-        // Or we rely on handleSuccess/Failure tracking elapsed if passed?
-        // Let's rely on event logic.
 
+        // Base complexity from profile
         let complexity = this.profile.complexity;
         let excludeStats = false;
         let delayOverride: number | undefined;
 
+        // Force disable DOUBLE for all phases except P2_DOUBLE
+        if (this.phase !== GrindPhase.P2_DOUBLE) {
+            complexity &= ~ComplexityBitmap.DOUBLE;
+        }
+
+
+
         switch (this.phase) {
             case GrindPhase.INITIAL:
-                complexity = 0; // Simple Vertical
+                complexity = 0; // Simple Vertical (Double already removed by mask if it was 0? 0 is simple)
                 break;
             case GrindPhase.P1_NORMAL:
-                // Regular rules (user profile complexity, but Double might be restricted?)
-                // "disable double events at start" -> Initial handled this.
-                // P1 is "regular grind rules".
+                // Regular rules (user profile complexity MINUS double)
+                // Handled by the mask above
                 break;
             case GrindPhase.P2_DOUBLE:
                 // Only Double events.
-                // We force DOUBLE bit, maybe disable others? 
-                // "only double events" implies ONLY double.
-                // ComplexityBitmap.DOUBLE needs to be set.
-                // If we pass ONLY DOUBLE to GameEngine, it might try to flip/side?
-                // GameEngine logic: isDouble = (complexity & DOUBLE) && random.
-                // To force double, we might need a specific flag or hack probability in Engine?
-                // Or just set complexity to DOUBLE and hope Engine picks it?
-                // Engine says: `const isDouble = canDouble && Math.random() > 0.5`.
-                // We can't strictly force it via complexity bitmap alone without changing Engine probability.
-                // However, user said "only double events". 
-                // Let's enable DOUBLE and maybe Engine needs update if we want 100% double? 
-                // Valid requirement. 
-                // For now, let's enable DOUBLE. If we want strict "Only Double", we assume Engine handles high probability or we accept 50%.
-                // Wait, "Only double events" implies 100%. 
-                // **CRITICIAL**: Current Engine uses `Math.random() > 0.5` for double.
-                // Refactor risk. I will rely on standard behavior for now to avoid breaking Engine logic, 
-                // OR I can use a high complexity that enables Double.
-                // Actually, let's just use `ComplexityBitmap.DOUBLE`.
+                // STRICT MODE: No SIDE, FLIP, FAKE. ONLY DOUBLE.
                 complexity = ComplexityBitmap.DOUBLE;
                 break;
             case GrindPhase.P3_RECOVERY:
-                // "speed returns to last speed at phase 1". 
-                // Complexity? "regular grind rules" implied? Assume regular.
+                // Regular rules (minus double)
                 break;
             case GrindPhase.P4_SPRINT:
                 // Complexity 0
@@ -228,13 +212,21 @@ export class GrindStrategy extends BaseStrategy {
             case GrindPhase.COOLDOWN:
                 complexity = 0;
                 excludeStats = true;
-                delayOverride = 1000; // Slow pace?
+                delayOverride = 1000; // Slow pace
                 break;
+        }
+
+        if (this.phase === GrindPhase.P2_DOUBLE) {
+            // Force Double Type
+            const result = session.createSpawnEvent(complexity, 'double');
+            result.phase = this.phase;
+            return result;
         }
 
         const result = session.createSpawnEvent(complexity);
         if (excludeStats) result.excludeFromStats = true;
         if (delayOverride) result.delay = delayOverride;
+        result.phase = this.phase; // Pass phase for visibility
         return result;
     }
 
@@ -322,6 +314,7 @@ export class GrindStrategy extends BaseStrategy {
                 // "No speed change"
                 if (!isSuccess) {
                     this.sprintFailures++;
+                    this.hasErrorInP4 = true;
                 } else {
                     this.sprintFailures = 0; // Reset consecutive check
                 }
@@ -357,7 +350,9 @@ export class GrindStrategy extends BaseStrategy {
 
             case GrindPhase.P3_RECOVERY:
                 if (this.eventCountInPhase >= this.LIMIT_P3) {
+                    this.lastP3Speed = session.getSpeed(); // Snapshot P3 Speed
                     this.transitionTo(GrindPhase.P4_SPRINT);
+                    this.hasErrorInP4 = false; // Reset error flag for new sprint
                     // P4 Start Logic: Speed jumps by 20
                     session.setSpeed(Math.min(globalCap, session.getSpeed() + 20));
                     this.sprintFailures = 0;
@@ -389,7 +384,6 @@ export class GrindStrategy extends BaseStrategy {
     }
 
     private transitionTo(nextPhase: GrindPhase) {
-        console.log(`[Strategies] Transitioning ${this.phase} -> ${nextPhase}`);
         this.phase = nextPhase;
         this.eventCountInPhase = 0;
     }

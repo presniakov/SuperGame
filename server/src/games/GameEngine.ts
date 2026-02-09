@@ -82,10 +82,13 @@ export class GameSession {
     public setSpeed(speed: number) { this.currentSpeed = speed; }
     public setMaxSpeed(speed: number) { this.sessionMaxSpeed = speed; }
 
-    public createSpawnEvent(complexity: number): SpawnEventResult {
+    public createSpawnEvent(complexity: number, forcedType?: 'single' | 'double'): SpawnEventResult {
         // Complexity Check: Double
         const canDouble = (complexity & ComplexityBitmap.DOUBLE) !== 0;
-        const isDouble = canDouble && Math.random() > 0.5;
+        let isDouble = canDouble && Math.random() > 0.5;
+
+        if (forcedType === 'double') isDouble = true;
+        if (forcedType === 'single') isDouble = false;
 
         const type = isDouble ? 'double' : 'single';
         const eventId = uuidv4();
@@ -167,6 +170,8 @@ export class GameSession {
         // If Strategy wants to override, we'd need to pass it or let strategy modify result.
         // For now, standard delay.
         const delay = (300 + Math.floor(Math.random() * 700));
+
+
 
         return {
             eventId,

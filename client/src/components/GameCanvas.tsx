@@ -83,6 +83,12 @@ export default function GameCanvas({ socket, onAbort, style = 'cyber', duration 
             const targetStartTime = baseTime + (event.delay || 0);
             const waitTime = Math.max(0, targetStartTime - now);
 
+            // Get current speed from the first sprite (works for Vertical or Horizontal/Side)
+            if (!event.sprites || event.sprites.length === 0) {
+                console.warn('[Game] Received spawn event with no sprites:', event.eventId);
+                return;
+            }
+
             setTimeout(() => {
                 eventStartRef.current = Date.now();
                 eventIdRef.current = event.eventId;
@@ -98,6 +104,37 @@ export default function GameCanvas({ socket, onAbort, style = 'cyber', duration 
                     });
                 });
             }, waitTime);
+
+            /*
+            // patch for auto-game for debugging
+            const firstSprite = event.sprites[0];
+            const currentSpeed = firstSprite
+                ? Math.max(Math.abs(firstSprite.velocityY), Math.abs(firstSprite.velocityX))
+                : 0;
+            const halfScreenTime = (152.41 / currentSpeed / 2) * 1000;
+            const autoTime = waitTime + halfScreenTime;
+            setTimeout(() => {
+                if (spritesRef.current.length === 0) return; // No active sprites
+                const targetSprite = spritesRef.current[0];
+                const key = targetSprite.letter;
+                // Correct Hit on First Sprite
+                spritesRef.current.splice(0, 1); // Remove it
+                handleResult('hit', key, targetSprite.id);
+
+            }, autoTime);
+            if (event.sprites.length === 2) {
+                const autoTime2 = autoTime + 200;
+                setTimeout(() => {
+                    if (spritesRef.current.length === 0) return; // No active sprites
+                    const targetSprite = spritesRef.current[0];
+                    const key = targetSprite.letter;
+                    // Correct Hit on Next Sprite
+                    spritesRef.current.splice(0, 1); // Remove it
+                    handleResult('hit', key, targetSprite.id);
+                }, autoTime2);
+            }
+            */
+
         };
 
         // Attach Listeners Always
