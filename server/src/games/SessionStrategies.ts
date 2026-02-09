@@ -145,7 +145,9 @@ export class GrindStrategy extends BaseStrategy {
     private lastP3Speed = 0;
     private hasErrorInP4 = false;
     private sprintFailures = 0;
+
     private timeAtCooldownStart = 0;
+    private currentComplexityLevel = 0;
 
     // Configuration Constants
     private readonly DURATION_MAIN = 3 * 60 * 1000; // 3 mins
@@ -172,15 +174,57 @@ export class GrindStrategy extends BaseStrategy {
         this.eventCountInPhase = 0;
         this.phaseLoopCount = 0;
         this.sprintFailures = 0;
+        this.currentComplexityLevel = 0;
+    }
+
+    private getMaxLevelFromProfile(cpx: number): number {
+        if ((cpx & ComplexityBitmap.FAKE) !== 0) return 4;
+        if ((cpx & ComplexityBitmap.FLIP) !== 0) return 3;
+        if ((cpx & ComplexityBitmap.SIDE) !== 0) return 2;
+        return 1;
+    }
+
+    private getBitmapFromLevel(level: number): number {
+        switch (level) {
+            case 0: return ComplexityBitmap.FIXED_POS;
+            case 1: return 0;
+            case 2: return ComplexityBitmap.SIDE;
+            case 3: return ComplexityBitmap.SIDE | ComplexityBitmap.FLIP;
+            case 4: return ComplexityBitmap.SIDE | ComplexityBitmap.FLIP | ComplexityBitmap.FAKE;
+            default: return 0;
+        }
     }
 
     generateSpawn(session: GameSession, isFirst: boolean): SpawnEventResult {
         // Cooldown Check (Time-based transition override)
 
         // Base complexity from profile
-        let complexity = this.profile.complexity;
+        let profileComplexity = this.profile.complexity;
         let excludeStats = false;
         let delayOverride: number | undefined;
+
+        // Determine Effective Level
+        let effectiveLevel = this.currentComplexityLevel;
+
+        // Overrides for Level 0
+        const timeElapsed = session.getElapsedTime();
+        const isLastMinute = this.phase !== GrindPhase.COOLDOWN && timeElapsed > (this.DURATION_MAIN - 60000);
+
+        if (this.phase === GrindPhase.INITIAL || this.phase === GrindPhase.COOLDOWN || isLastMinute) {
+            effectiveLevel = 0;
+        }
+
+        // Calculate Complexity Bitmap based on Level
+        let complexity = this.getBitmapFromLevel(effectiveLevel);
+
+        // Cap by Profile (Ensure we don't enable features user doesn't have)
+        // Except FIXED_POS (Level 0) which is system-controlled, so we OR it? 
+        // No, user profile likely doesn't have FIXED_POS set (it's new). 
+        // So we strictly mask standard bits, but allow FIXED_POS if level says so?
+        // Actually, FIXED_POS is safe. Mask others.
+
+        // Strict Mask:
+        complexity &= (profileComplexity | ComplexityBitmap.FIXED_POS);
 
         // Force disable DOUBLE for all phases except P2_DOUBLE
         if (this.phase !== GrindPhase.P2_DOUBLE) {
@@ -354,7 +398,8 @@ export class GrindStrategy extends BaseStrategy {
                     this.transitionTo(GrindPhase.P4_SPRINT);
                     this.hasErrorInP4 = false; // Reset error flag for new sprint
                     // P4 Start Logic: Speed jumps by 20
-                    session.setSpeed(Math.min(globalCap, session.getSpeed() + 20));
+                    //session.setSpeed(Math.min(globalCap, session.getSpeed() + 20));
+                    session.setSpeed(session.getSpeed() + 20);
                     this.sprintFailures = 0;
                 }
                 break;
@@ -384,6 +429,14 @@ export class GrindStrategy extends BaseStrategy {
     }
 
     private transitionTo(nextPhase: GrindPhase) {
+        if (nextPhase === GrindPhase.P1_NORMAL) {
+            // Increment Complexity on Loop Start
+            const maxLevel = this.getMaxLevelFromProfile(this.profile.complexity);
+            if (this.currentComplexityLevel < maxLevel) {
+                this.currentComplexityLevel++;
+            }
+        }
+
         this.phase = nextPhase;
         this.eventCountInPhase = 0;
     }

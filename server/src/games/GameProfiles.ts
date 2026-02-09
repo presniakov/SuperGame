@@ -11,7 +11,8 @@ export enum ComplexityBitmap {
     SIDE = 1 << 0,   // 1
     FLIP = 1 << 1,   // 2
     FAKE = 1 << 2,   // 4
-    DOUBLE = 1 << 3  // 8
+    DOUBLE = 1 << 3,  // 8
+    FIXED_POS = 1 << 4 // 16
 }
 
 export const COMPLEXITY_ALL = ComplexityBitmap.SIDE | ComplexityBitmap.FLIP | ComplexityBitmap.FAKE | ComplexityBitmap.DOUBLE;

@@ -81,6 +81,7 @@ export class GameSession {
 
     public setSpeed(speed: number) { this.currentSpeed = speed; }
     public setMaxSpeed(speed: number) { this.sessionMaxSpeed = speed; }
+    public getElapsedTime(): number { return this.isActive ? Date.now() - this.startTime : 0; }
 
     public createSpawnEvent(complexity: number, forcedType?: 'single' | 'double'): SpawnEventResult {
         // Complexity Check: Double
@@ -97,12 +98,21 @@ export class GameSession {
         const l1 = this.targetLetters[Math.floor(Math.random() * this.targetLetters.length)];
 
         const margin = 2;
-        let maxStart = 100 - margin - SIZE_X;
-        if (type === 'double') {
-            maxStart = 100 - margin - DOUBLE_WIDTH;
+        let startX: number;
+
+        if ((complexity & ComplexityBitmap.FIXED_POS) !== 0) {
+            // Center Position
+            const width = (type === 'double') ? DOUBLE_WIDTH : SIZE_X;
+            startX = (100 - width) / 2;
+        } else {
+            // Random Position
+            let maxStart = 100 - margin - SIZE_X;
+            if (type === 'double') {
+                maxStart = 100 - margin - DOUBLE_WIDTH;
+            }
+            maxStart = Math.max(margin, maxStart);
+            startX = margin + Math.random() * (maxStart - margin);
         }
-        maxStart = Math.max(margin, maxStart);
-        const startX = margin + Math.random() * (maxStart - margin);
 
         if (type === 'single') {
             let vx = 0;
