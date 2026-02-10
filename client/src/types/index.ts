@@ -71,7 +71,8 @@ export const ProfileType = {
     STEADY: 'Steady',
     CASUAL: 'Casual',
     ACTIVE: 'Active',
-    ELITE: 'Elite'
+    ELITE: 'Elite',
+    UNDEFINED: 'Undefined'
 } as const;
 
 export type ProfileType = typeof ProfileType[keyof typeof ProfileType];

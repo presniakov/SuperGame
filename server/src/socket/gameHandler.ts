@@ -26,6 +26,10 @@ export default function gameHandler(io: Server, socket: Socket) {
                     if (forced && Object.values(SessionType).includes(forced)) {
                         sessionType = forced;
                         console.log(`[GameHandler] User ${user.username} forcing session: ${sessionType}`);
+                    } else if (profileType === ProfileType.UNDEFINED) {
+                        // Force Calibration for Undefined Profile
+                        sessionType = SessionType.CALIBRATION;
+                        console.log(`[GameHandler] User ${user.username} is UNDEFINED -> Forcing CALIBRATION`);
                     } else {
                         // Modulo Logic
                         const total = user.totalSessionsPlayed || 0;
@@ -50,7 +54,7 @@ export default function gameHandler(io: Server, socket: Socket) {
 
         const session = new GameSession(socket.id, userId || 'anon', letters, profileType, sessionType);
         sessions[socket.id] = session;
-        socket.emit('game_ready', { duration: 180000 });
+        socket.emit('game_ready', { duration: session.getDuration() });
     });
 
     socket.on('start_game', () => {

@@ -1,7 +1,7 @@
 import { v4 as uuidv4 } from 'uuid';
 import GameResult from '../models/GameResult';
 import User from '../models/User';
-import { UserProfile, PROFILES, DEFAULT_PROFILE, ComplexityBitmap, ProfileType } from './GameProfiles';
+import { UserProfile, PROFILES, DEFAULT_PROFILE, ComplexityBitmap, ProfileType, getProfileFromSpeed } from './GameProfiles';
 import { SessionType, SessionStrategy, getStrategy, SpawnEventResult } from './SessionStrategies';
 
 const LETTER_SIZE = 5; // units
@@ -82,6 +82,7 @@ export class GameSession {
     public setSpeed(speed: number) { this.currentSpeed = speed; }
     public setMaxSpeed(speed: number) { this.sessionMaxSpeed = speed; }
     public getElapsedTime(): number { return this.isActive ? Date.now() - this.startTime : 0; }
+    public getDuration(): number { return this.strategy.getDuration(); }
 
     public createSpawnEvent(complexity: number, forcedType?: 'single' | 'double'): SpawnEventResult {
         // Complexity Check: Double
@@ -434,6 +435,16 @@ export class GameSession {
                         }
                     };
                 }
+
+                // Calibration Ranking Logic
+                if (this.strategy.type === SessionType.CALIBRATION) {
+                    const newProfile = getProfileFromSpeed(this.sessionMaxSpeed);
+                    if (user.preferences) {
+                        user.preferences.profile = newProfile;
+                        console.log(`[GameEngine] Calibration Complete. User ${user.username} ranked as ${newProfile} (Speed: ${this.sessionMaxSpeed})`);
+                    }
+                }
+
                 await user.save();
             }
         } catch (e) { console.error(e); }

@@ -80,50 +80,7 @@ export abstract class BaseStrategy implements SessionStrategy {
     }
 }
 
-export class CalibrationStrategy extends BaseStrategy {
-    type = SessionType.CALIBRATION;
-    private eventsProcessed = 0;
-    private readonly MAX_EVENTS = 10;
-    private readonly CALIBRATION_START = 125;
 
-    constructor(profile: UserProfile) {
-        super(profile);
-    }
-
-    getDuration(): number {
-        return 24 * 60 * 60 * 1000; // Effectively infinite, ends on count
-    }
-
-    initialize(session: GameSession): void {
-        session.setSpeed(this.CALIBRATION_START);
-        session.setMaxSpeed(this.CALIBRATION_START);
-    }
-
-    generateSpawn(session: GameSession, isFirst: boolean): SpawnEventResult {
-        // Calibration: Minimal complexity - SIDE only
-        return session.createSpawnEvent(ComplexityBitmap.SIDE);
-    }
-
-    handleSuccess(session: GameSession): void {
-        // +15 units/s
-        const current = session.getSpeed();
-        const next = current + 15;
-        session.setSpeed(next);
-        session.setMaxSpeed(Math.max(session.getMaxSpeed(), next));
-        this.eventsProcessed++;
-    }
-
-    handleFailure(session: GameSession): void {
-        // -25 units/s
-        const current = session.getSpeed();
-        session.setSpeed(Math.max(10, current - 25));
-        this.eventsProcessed++;
-    }
-
-    shouldEndSession(session: GameSession, timeElapsed: number): boolean {
-        return this.eventsProcessed >= this.MAX_EVENTS;
-    }
-}
 
 // Grind Phases
 enum GrindPhase {
@@ -150,8 +107,8 @@ export class GrindStrategy extends BaseStrategy {
     private currentComplexityLevel = 0;
 
     // Configuration Constants
-    private readonly DURATION_MAIN = 3 * 60 * 1000; // 3 mins
-    private readonly DURATION_COOLDOWN = 20 * 1000; // 20s
+    protected readonly DURATION_MAIN = 3 * 60 * 1000; // 3 mins
+    protected readonly DURATION_COOLDOWN = 20 * 1000; // 20s
 
     // Phase Limits
     private readonly LIMIT_INITIAL = 5;
@@ -441,6 +398,11 @@ export class GrindStrategy extends BaseStrategy {
         this.phase = nextPhase;
         this.eventCountInPhase = 0;
     }
+}
+
+export class CalibrationStrategy extends GrindStrategy {
+    type = SessionType.CALIBRATION;
+    protected readonly DURATION_MAIN = 2 * 60 * 1000; // 2 mins
 }
 
 export class BreakthroughStrategy extends BaseStrategy {

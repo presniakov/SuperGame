@@ -28,7 +28,7 @@ const UserSchema: Schema = new Schema({
         profile: {
             type: String,
             enum: Object.values(ProfileType),
-            default: ProfileType.CASUAL
+            default: ProfileType.UNDEFINED
         },
         forceSessionType: { type: String }
     },

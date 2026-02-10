@@ -4,7 +4,8 @@ export enum ProfileType {
     STEADY = 'Steady',
     CASUAL = 'Casual',
     ACTIVE = 'Active',
-    ELITE = 'Elite'
+    ELITE = 'Elite',
+    UNDEFINED = 'Undefined'
 }
 
 export enum ComplexityBitmap {
@@ -16,6 +17,7 @@ export enum ComplexityBitmap {
 }
 
 export const COMPLEXITY_ALL = ComplexityBitmap.SIDE | ComplexityBitmap.FLIP | ComplexityBitmap.FAKE | ComplexityBitmap.DOUBLE;
+export const COMPLEXITY_NONE = ComplexityBitmap.DOUBLE;
 
 export enum StyleBitmap {
     BOOST = 1 << 0   // 1
@@ -96,7 +98,27 @@ export const PROFILES: Record<ProfileType, UserProfile> = {
         kDown: 0.15,
         complexity: COMPLEXITY_ALL,
         style: STYLE_ALL
+    },
+    [ProfileType.UNDEFINED]: {
+        name: ProfileType.UNDEFINED,
+        globalCap: 150.0,
+        startSpeed: 70.0,
+        trainingBuffer: 30.0,
+        growthRate: 0.15,
+        kInit: 0.03,
+        kUp: 0.03,
+        kDown: 0.15,
+        complexity: COMPLEXITY_NONE,
+        style: STYLE_ALL
     }
 };
 
 export const DEFAULT_PROFILE = PROFILES[ProfileType.CASUAL];
+
+export function getProfileFromSpeed(maxSpeed: number): ProfileType {
+    if (maxSpeed > 130) return ProfileType.ELITE;
+    if (maxSpeed > 120) return ProfileType.ACTIVE;
+    if (maxSpeed > 100) return ProfileType.CASUAL;
+    if (maxSpeed > 80) return ProfileType.STEADY;
+    return ProfileType.SUPPORT;
+}
