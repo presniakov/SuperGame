@@ -196,7 +196,7 @@ export default function ResultsPage({ onBack, theme }: ResultsPageProps) {
             y: {
                 title: { display: true, text: 'Speed', color: themeColors.text },
                 min: 0,
-                max: 200,
+                max: 300,
                 ticks: { color: themeColors.text },
                 grid: { color: 'rgba(255,255,255,0.1)' }
             }

@@ -29,6 +29,7 @@ export interface UserProfile {
     startSpeed: number;
     trainingBuffer: number;
     growthRate: number;
+    kInit: number;
     kUp: number;
     kDown: number;
     complexity: number; // Bitmap
@@ -38,10 +39,11 @@ export interface UserProfile {
 export const PROFILES: Record<ProfileType, UserProfile> = {
     [ProfileType.SUPPORT]: {
         name: ProfileType.SUPPORT,
-        globalCap: 80.0,
+        globalCap: 100.0,
         startSpeed: 50.0,
         trainingBuffer: 5.0,
         growthRate: 0.08,
+        kInit: 0.03,
         kUp: 0.03,
         kDown: 0.15,
         complexity: COMPLEXITY_ALL,
@@ -49,10 +51,11 @@ export const PROFILES: Record<ProfileType, UserProfile> = {
     },
     [ProfileType.STEADY]: {
         name: ProfileType.STEADY,
-        globalCap: 100.0,
-        startSpeed: 70.0,
-        trainingBuffer: 8.0,
+        globalCap: 130.0,
+        startSpeed: 65.0,
+        trainingBuffer: 12.0,
         growthRate: 0.1,
+        kInit: 0.04,
         kUp: 0.03,
         kDown: 0.15,
         complexity: COMPLEXITY_ALL,
@@ -60,10 +63,11 @@ export const PROFILES: Record<ProfileType, UserProfile> = {
     },
     [ProfileType.CASUAL]: {
         name: ProfileType.CASUAL,
-        globalCap: 125.0,
-        startSpeed: 90.0,
-        trainingBuffer: 10.0,
+        globalCap: 150.0,
+        startSpeed: 80.0,
+        trainingBuffer: 20.0,
         growthRate: 0.15,
+        kInit: 0.05,
         kUp: 0.03,
         kDown: 0.15,
         complexity: COMPLEXITY_ALL,
@@ -71,10 +75,11 @@ export const PROFILES: Record<ProfileType, UserProfile> = {
     },
     [ProfileType.ACTIVE]: {
         name: ProfileType.ACTIVE,
-        globalCap: 140.0,
-        startSpeed: 110.0,
-        trainingBuffer: 12.0,
+        globalCap: 170.0,
+        startSpeed: 90.0,
+        trainingBuffer: 32.0,
         growthRate: 0.2,
+        kInit: 0.06,
         kUp: 0.03,
         kDown: 0.15,
         complexity: COMPLEXITY_ALL,
@@ -82,10 +87,11 @@ export const PROFILES: Record<ProfileType, UserProfile> = {
     },
     [ProfileType.ELITE]: {
         name: ProfileType.ELITE,
-        globalCap: 165.0,
-        startSpeed: 130.0,
-        trainingBuffer: 15.0,
+        globalCap: 200.0,
+        startSpeed: 100.0,
+        trainingBuffer: 45.0,
         growthRate: 0.25,
+        kInit: 0.07,
         kUp: 0.03,
         kDown: 0.15,
         complexity: COMPLEXITY_ALL,

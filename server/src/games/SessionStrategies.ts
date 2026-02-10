@@ -313,14 +313,15 @@ export class GrindStrategy extends BaseStrategy {
         const currentSpeed = session.getSpeed();
         const globalCap = this.profile.globalCap;
         const startSpeed = this.profile.startSpeed;
+        const trainingBuffer = this.profile.trainingBuffer;
+        const goalSpeed = Math.min(globalCap, startSpeed + trainingBuffer);
 
         // --- Speed Logic per Phase ---
         switch (this.phase) {
             case GrindPhase.INITIAL:
                 if (isSuccess) {
-                    // +5% of remaining distance
-                    const gap = globalCap - currentSpeed;
-                    if (gap > 0) session.setSpeed(currentSpeed + (0.05 * gap));
+                    const gap = goalSpeed - currentSpeed;
+                    if (gap > 0) session.setSpeed(currentSpeed + (this.profile.kInit * gap));
                 } else {
                     // Regular penalty? Or "Drops by 15%..."
                     // User didn't specify Failure for Initial. Assume Standard Grind failure rule.
@@ -332,7 +333,7 @@ export class GrindStrategy extends BaseStrategy {
             case GrindPhase.P1_NORMAL:
                 // Regular Rules
                 if (isSuccess) {
-                    const gap = globalCap - currentSpeed;
+                    const gap = goalSpeed - currentSpeed;
                     if (gap > 0) session.setSpeed(currentSpeed + (this.profile.kUp * gap));
                 } else {
                     const drop = this.profile.kDown * (currentSpeed - startSpeed);
