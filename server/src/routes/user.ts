@@ -11,7 +11,16 @@ router.get('/me', auth, async (req: any, res) => {
     try {
         const user = await User.findById(req.user.id).select('-password');
         if (!user) return res.status(404).json({ msg: 'User not found' });
-        res.json(user);
+
+        // Get last played letters
+        const lastGame = await GameResult.findOne({ userId: req.user.id })
+            .sort({ date: -1 })
+            .select('letters');
+
+        const userData = user.toObject();
+        (userData as any).lastPlayedLetters = lastGame?.letters || ['A', 'L'];
+
+        res.json(userData);
     } catch (error) {
         console.error('Error fetching user:', error);
         res.status(500).json({ message: 'Server error' });

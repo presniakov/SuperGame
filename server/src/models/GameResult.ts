@@ -26,6 +26,7 @@ export interface IGameResult extends Document {
     sessionType?: string;
     sessionNumber?: number;
     userProfile?: string;
+    letters?: string[];
 }
 
 const GameResultSchema: Schema = new Schema({
@@ -34,6 +35,7 @@ const GameResultSchema: Schema = new Schema({
     sessionType: { type: String, default: 'The Grind' },
     sessionNumber: { type: Number },
     userProfile: { type: String },
+    letters: { type: [String] },
     statistics: {
         startSpeed: Number,
         maxSpeed: Number,

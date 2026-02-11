@@ -30,6 +30,7 @@ function GameContainer() {
   });
   const [userProfile, setUserProfile] = useState<string>('Candidate');
   const [totalSessionsPlayed, setTotalSessionsPlayed] = useState<number>(0);
+  const [lastPlayedLetters, setLastPlayedLetters] = useState<string[]>(['A', 'L']);
 
   const [view, setView] = useState<'landing' | 'menu' | 'game' | 'result' | 'history' | 'tutorial' | 'coming-soon'>(() => {
     if (isDevAccess) return 'landing';
@@ -67,6 +68,9 @@ function GameContainer() {
           // Add checking for totalSessionsPlayed
           if (typeof data.totalSessionsPlayed === 'number') {
             setTotalSessionsPlayed(data.totalSessionsPlayed);
+          }
+          if (data.lastPlayedLetters && Array.isArray(data.lastPlayedLetters)) {
+            setLastPlayedLetters(data.lastPlayedLetters);
           }
         })
         .catch(err => {
@@ -142,6 +146,7 @@ function GameContainer() {
     setUserRole('user');
     setUserProfile('Candidate');
     setTotalSessionsPlayed(0);
+    setLastPlayedLetters(['A', 'L']);
     setView('landing');
   };
 
@@ -222,6 +227,7 @@ function GameContainer() {
         isAdmin={userRole === 'admin'}
         userProfile={userProfile}
         totalSessionsPlayed={totalSessionsPlayed}
+        lastPlayedLetters={lastPlayedLetters}
       />
     );
   }

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Play, Settings, Zap, BarChart3, Brain, Layout, TrendingUp, HelpCircle, LogOut, Shield } from 'lucide-react';
 import type { GameStyle } from '../types';
 import './PersonalPage.css';
@@ -14,6 +14,7 @@ interface PersonalPageProps {
     isAdmin?: boolean;
     userProfile?: string;
     totalSessionsPlayed?: number;
+    lastPlayedLetters?: string[];
 }
 
 export default function PersonalPage({
@@ -26,9 +27,17 @@ export default function PersonalPage({
     onLogout,
     isAdmin,
     userProfile = 'Candidate',
-    totalSessionsPlayed = 0
+    totalSessionsPlayed = 0,
+    lastPlayedLetters = ['A', 'L']
 }: PersonalPageProps) {
-    const [letters, setLetters] = useState(['A', 'L']);
+    const [letters, setLetters] = useState(lastPlayedLetters);
+
+    // Update local state if prop changes (e.g. after fetch completes)
+    useEffect(() => {
+        if (lastPlayedLetters && lastPlayedLetters.length === 2) {
+            setLetters(lastPlayedLetters);
+        }
+    }, [lastPlayedLetters]);
 
     const handleLetterChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         // Enforce exactly 2 letters, uppercase only, alpha only
