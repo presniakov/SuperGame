@@ -36,8 +36,7 @@ function GameContainer() {
     return savedToken ? 'menu' : 'coming-soon';
   });
 
-  // Check for persistent session - Sync only
-  useEffect(() => {
+  const fetchUserData = () => {
     const savedToken = localStorage.getItem('token');
     if (savedToken) {
       // Sync with backend
@@ -72,6 +71,12 @@ function GameContainer() {
           }
         });
     }
+  };
+
+  // Check for persistent session - Sync only
+  useEffect(() => {
+    fetchUserData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Apply visual theme globally when gameStyle changes
@@ -217,7 +222,10 @@ function GameContainer() {
   }
 
   if (view === 'result' || view === 'history') {
-    return <ResultsPage onBack={() => setView('menu')} theme={gameStyle} />;
+    return <ResultsPage onBack={() => {
+      fetchUserData(); // Refresh profile/data when returning from results
+      setView('menu');
+    }} theme={gameStyle} />;
   }
 
   return <div>Loading...</div>;
