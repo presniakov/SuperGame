@@ -23,6 +23,21 @@ export default function GameCanvas({ socket, onAbort, style = 'cyber', duration 
     const eventIdRef = useRef<string>('');
     const resultsRef = useRef<{ spriteId: string, result: 'hit' | 'miss' | 'wrong', letter: string }[]>([]);
     const totalSpritesInEventRef = useRef<number>(0);
+    const imagesRef = useRef<Record<string, HTMLImageElement>>({});
+
+    useEffect(() => {
+        if (style === 'steam') {
+            // Load Steam Assets
+            const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'.split('');
+            chars.forEach(char => {
+                const img = new Image();
+                img.src = `/assets/Letters-A-Z/${char}.png`;
+                img.onload = () => {
+                    imagesRef.current[char] = img;
+                };
+            });
+        }
+    }, [style]);
 
 
     const [dimensions, setDimensions] = useState({ width: 800, height: 600 });
@@ -319,15 +334,6 @@ export default function GameCanvas({ socket, onAbort, style = 'cyber', duration 
 
                 // Handle Flipped Sprite
                 if (sprite.isFlipped) {
-                    // Move origin to sprite center
-                    // We draw text at (px, py + 30). Center depends on size. 
-                    // Let's approximate center or just flip at the anchor point.
-                    // Text anchor is default (left-bottom roughly?). 
-                    // ctx.fillText(str, x, y). 
-                    // To flip in place: translate to (x, y), scale(1, -1), draw at (0, 0).
-                    // But we draw at py + 30.
-                    // Let's translate to (px, py).
-
                     const centerX = px + (sprite.size) / 3; // Approx center X
                     const centerY = py + 15; // Approx center Y
 
@@ -337,12 +343,31 @@ export default function GameCanvas({ socket, onAbort, style = 'cyber', duration 
                 }
 
                 if (style === 'steam') {
-                    const fontSize = sprite.size;
-                    ctx.font = `bold ${fontSize}px 'Rajdhani', sans-serif`;
-                    ctx.fillStyle = "#d97706";
-                    ctx.shadowColor = "#000";
-                    ctx.shadowBlur = 4;
-                    ctx.fillText(sprite.letter, px, py + 30);
+                    const letterBase = sprite.letter.toUpperCase();
+                    // Check if we have an image for this letter
+                    const img = imagesRef.current[letterBase];
+                    if (img) {
+                        // Draw image
+                        // Text was drawn at py + 30. 
+                        // Let's draw image at px, py + some offset to align?
+                        // If we assume the top-left of the text box was roughly px, py
+                        // We can just draw the image at px, py.
+                        // However, the text baseline 'alphabetic' (default) puts the baseline at y.
+                        // So text is drawn ABOVE y mostly.
+                        // But here we had `py + 30`. If font size is `sprite.size` (e.g. 40-60?), 30 is roughly the ascent.
+                        // So `py` is likely the top-left of the intended box.
+
+                        // Let's try drawing at px, py with size.
+                        ctx.drawImage(img, px, py, sprite.size, sprite.size);
+                    } else {
+                        // Fallback to text if image missing
+                        const fontSize = sprite.size;
+                        ctx.font = `bold ${fontSize}px 'Rajdhani', sans-serif`;
+                        ctx.fillStyle = "#d97706";
+                        ctx.shadowColor = "#000";
+                        ctx.shadowBlur = 4;
+                        ctx.fillText(sprite.letter, px, py + 30);
+                    }
                 } else if (style === 'cyber') {
                     const fontSize = sprite.size;
                     ctx.font = `bold ${fontSize}px 'Segoe UI', sans-serif`;
