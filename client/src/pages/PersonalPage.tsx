@@ -13,6 +13,7 @@ interface PersonalPageProps {
     onLogout: () => void;
     isAdmin?: boolean;
     userProfile?: string;
+    totalSessionsPlayed?: number;
 }
 
 export default function PersonalPage({
@@ -24,7 +25,8 @@ export default function PersonalPage({
     onViewTutorial,
     onLogout,
     isAdmin,
-    userProfile = 'Candidate'
+    userProfile = 'Candidate',
+    totalSessionsPlayed = 0
 }: PersonalPageProps) {
     const [letters, setLetters] = useState(['A', 'L']);
 
@@ -64,6 +66,21 @@ export default function PersonalPage({
             alert('Error initializing admin session');
         }
     };
+
+    // Recommendations from Tutorial (How to Play)
+    const RECOMMENDATIONS = [
+        "Take a comfortable position.",
+        "Play in a calm environment with minimal distractions.",
+        "Look at the center of the screen. During the game, try to keep your gaze on the center.",
+        "Pay attention to your breathing. Breathe in a relaxed manner.",
+        "Don't dwell on mistakes — keep playing.",
+        "Eliminate the moment of anticipation (don't guess); simply react to the appearing symbol (event).",
+        "If during the game you feel overloaded and unable to cope, stop playing. Take a break for 1-2 days.",
+        "It is recommended that the player periodically (every 2 weeks) change the letters (symbols) — one of the two or both at once."
+    ];
+
+    const currentRecIndex = (totalSessionsPlayed || 0) % RECOMMENDATIONS.length;
+    const currentRecommendation = RECOMMENDATIONS[currentRecIndex];
 
     return (
         <div className="personal-page dashboard-layout">
@@ -171,8 +188,8 @@ export default function PersonalPage({
                                 <Zap className="rec-icon" size={32} />
                             </div>
                             <div>
-                                <h3>Speed Training Recommended</h3>
-                                <p>Your reaction time avg is <strong>450ms</strong>. Try to push it under 400ms today using the 'Neon' style for high contrast.</p>
+                                <h3>Tip #{currentRecIndex + 1}</h3>
+                                <p>{currentRecommendation}</p>
                             </div>
                         </div>
                     </div>

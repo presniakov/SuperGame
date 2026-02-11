@@ -29,6 +29,7 @@ function GameContainer() {
     return (saved === 'cyber' || saved === 'hi-tech' || saved === 'steam') ? (saved as GameStyle) : 'cyber';
   });
   const [userProfile, setUserProfile] = useState<string>('Candidate');
+  const [totalSessionsPlayed, setTotalSessionsPlayed] = useState<number>(0);
 
   const [view, setView] = useState<'landing' | 'menu' | 'game' | 'result' | 'history' | 'tutorial' | 'coming-soon'>(() => {
     if (isDevAccess) return 'landing';
@@ -62,6 +63,10 @@ function GameContainer() {
           }
           if (data.preferences?.profile) {
             setUserProfile(data.preferences.profile);
+          }
+          // Add checking for totalSessionsPlayed
+          if (typeof data.totalSessionsPlayed === 'number') {
+            setTotalSessionsPlayed(data.totalSessionsPlayed);
           }
         })
         .catch(err => {
@@ -122,6 +127,8 @@ function GameContainer() {
     if ((preferences as any)?.profile) {
       setUserProfile((preferences as any).profile);
     }
+    // Re-fetch full user data to get sessions count properly
+    fetchUserData();
 
     setView('menu');
   };
@@ -134,6 +141,7 @@ function GameContainer() {
     setUserId('');
     setUserRole('user');
     setUserProfile('Candidate');
+    setTotalSessionsPlayed(0);
     setView('landing');
   };
 
@@ -213,6 +221,7 @@ function GameContainer() {
         onLogout={handleLogout}
         isAdmin={userRole === 'admin'}
         userProfile={userProfile}
+        totalSessionsPlayed={totalSessionsPlayed}
       />
     );
   }
