@@ -38,6 +38,7 @@ export class GameSession {
     private activeSprites: SpriteState[] = [];
     private currentEventId: string | null = null;
     private currentEventType: 'single' | 'double' = 'single';
+    private currentEventExcluded: boolean = false;
     private eventTimer: NodeJS.Timeout | null = null;
     private isRunning: boolean = false;
 
@@ -224,8 +225,16 @@ export class GameSession {
         this.activeSprites = event.sprites.map(s => ({ id: s.id, letter: s.letter, active: true }));
         this.currentEventId = event.eventId;
         this.currentEventType = event.type as 'single' | 'double';
+        this.currentEventExcluded = !!event.excludeFromStats;
 
-        emitSpawn(event);
+        // Ensure mandatory fields for client
+        const payload = {
+            ...event,
+            timestamp: Date.now(),
+            phase: event.phase || this.strategy.type
+        };
+
+        emitSpawn(payload);
     }
 
     public processEventBatch(
@@ -239,7 +248,10 @@ export class GameSession {
         onGameOver: (result: any) => void // Need this to end session from loop
     ) {
         if (!this.isActive) return;
-        if (data.eventId !== this.currentEventId) return;
+        if (data.eventId !== this.currentEventId) {
+            console.warn(`[GameEngine] Mismatch! Ignored batch ${data.eventId} vs current ${this.currentEventId}`);
+            return;
+        }
 
         this.currentEventId = null;
         if (data.results.length === 0) return;
@@ -276,6 +288,16 @@ export class GameSession {
         const timeOffset = Date.now() - this.startTime;
         const combinedLetter = letters.join('+');
 
+        const historyItem = {
+            result: 'miss', // Default placeholder
+            letter: combinedLetter || 'ERR',
+            speed: this.currentSpeed,
+            timeOffset,
+            eventType: this.currentEventType,
+            eventDuration,
+            excludeFromStats: this.currentEventExcluded
+        };
+
         if (allHit) {
             // Validate that we actually hit ALL target sprites
             // If activeSprites.length > letters.length, we missed some?
@@ -285,40 +307,21 @@ export class GameSession {
             if (letters.length < this.activeSprites.length) {
                 // Partial success is NOT success/hit for the event logic
                 this.strategy.handleFailure(this);
-                this.history.push({
-                    result: 'miss', // Treat incomplete as miss
-                    letter: combinedLetter || 'ERR',
-                    speed: this.currentSpeed,
-                    timeOffset,
-                    eventType: this.currentEventType,
-                    eventDuration
-                });
+                historyItem.result = 'miss'; // Treat incomplete as miss
             } else {
                 this.score += (10 * letters.length);
                 this.strategy.handleSuccess(this);
-                this.history.push({
-                    result: 'hit',
-                    letter: combinedLetter,
-                    speed: this.currentSpeed,
-                    timeOffset,
-                    eventType: this.currentEventType,
-                    eventDuration
-                });
+                historyItem.result = 'hit';
             }
         } else {
             // Failure
             this.strategy.handleFailure(this);
             const resultType = anyWrong ? 'wrong' : 'miss';
-            this.history.push({
-                result: resultType,
-                letter: combinedLetter,
-                speed: this.currentSpeed,
-                timeOffset,
-                eventType: this.currentEventType,
-                eventDuration
-            });
+            historyItem.result = resultType;
         }
 
+
+        this.history.push(historyItem);
 
         // Check End Condition (e.g. Calibration Event Count)
         const elapsed = Date.now() - this.startTime;

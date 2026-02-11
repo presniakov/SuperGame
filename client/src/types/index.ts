@@ -12,10 +12,10 @@ export interface SpawnEvent {
     eventId: string;
     type: 'single' | 'double';
     sprites: SpriteData[];
-    timestamp?: number; // server timestamp if needed, but we rely on delay
-    size?: number;
-    delay?: number; // milliseconds to wait after PREVIOUS event end before starting this one
-    phase?: string; // Phase name for visibility
+    timestamp: number; // server timestamp if needed, but we rely on delay
+    size: number;
+    delay: number; // milliseconds to wait after PREVIOUS event end before starting this one
+    phase: string; // Phase name for visibility
 }
 
 export interface EventCompletionData {

@@ -5,7 +5,7 @@ import type { SpawnEvent, SpriteData, GameStyle } from '../types';
 
 interface RenderSprite extends SpriteData {
     timestamp: number; // local start time
-    size?: number;
+    size: number;
 }
 
 const LETTER_COLORS = ['#ff0000', '#00ff00', '#0000ff', '#ffff00', '#ff00ff', '#00ffff'];
@@ -78,16 +78,22 @@ export default function GameCanvas({ socket, onAbort, style = 'cyber', duration 
         };
 
         const onSpawn = (event: SpawnEvent) => {
-            const now = Date.now();
-            const baseTime = lastEventEndRef.current || now;
-            const targetStartTime = baseTime + (event.delay || 0);
-            const waitTime = Math.max(0, targetStartTime - now);
-
-            // Get current speed from the first sprite (works for Vertical or Horizontal/Side)
-            if (!event.sprites || event.sprites.length === 0) {
-                console.warn('[Game] Received spawn event with no sprites:', event.eventId);
+            // Validate mandatory fields
+            if (
+                event.timestamp === undefined ||
+                event.delay === undefined ||
+                event.size === undefined ||
+                event.phase === undefined ||
+                !event.sprites || event.sprites.length === 0
+            ) {
+                console.warn('[Game] Received malformed spawn event:', event);
                 return;
             }
+
+            const now = Date.now();
+            const baseTime = lastEventEndRef.current || now;
+            const targetStartTime = baseTime + event.delay;
+            const waitTime = Math.max(0, targetStartTime - now);
 
             setTimeout(() => {
                 eventStartRef.current = Date.now();
@@ -114,7 +120,7 @@ export default function GameCanvas({ socket, onAbort, style = 'cyber', duration 
             const halfScreenTime = (152.41 / currentSpeed / 2) * 1000;
             const autoTime = waitTime + halfScreenTime;
             setTimeout(() => {
-                if (spritesRef.current.length === 0) return; // No active sprites
+                if (spritesRef.current.length === 0) return; // active sprites
                 const targetSprite = spritesRef.current[0];
                 const key = targetSprite.letter;
                 // Correct Hit on First Sprite
@@ -125,7 +131,7 @@ export default function GameCanvas({ socket, onAbort, style = 'cyber', duration 
             if (event.sprites.length === 2) {
                 const autoTime2 = autoTime + 200;
                 setTimeout(() => {
-                    if (spritesRef.current.length === 0) return; // No active sprites
+                    if (spritesRef.current.length === 0) return; // active sprites
                     const targetSprite = spritesRef.current[0];
                     const key = targetSprite.letter;
                     // Correct Hit on Next Sprite
@@ -261,6 +267,9 @@ export default function GameCanvas({ socket, onAbort, style = 'cyber', duration 
 
             // 1. UPDATE & CHECK BOUNDS
             // If ANY sprite goes out of bounds, the whole event fails immediately.
+
+            // --- SPEED DEBUG CHECK REMOVED ---
+
             for (let i = 0; i < spritesRef.current.length; i++) {
                 const sprite = spritesRef.current[i];
                 const dt = (now - sprite.timestamp) / 1000;
@@ -269,9 +278,19 @@ export default function GameCanvas({ socket, onAbort, style = 'cyber', duration 
                 const posX = sprite.startX + sprite.velocityX * dt;
                 const posY = sprite.startY + sprite.velocityY * dt;
 
-                // Bounds Check
-                // Vertical bounds: starts negative, falls positive. Miss if > 120.
-                if (posX < -20 || posX > 120 || posY > 120 || posY < -200) {
+                // Bounds Check based on velocity direction
+                // We only check the bound into which the sprite is moving (exit side)
+                const size = sprite.size;
+                const marginX = (size / dimensions.width) * 100;
+                const marginY = (size / dimensions.height) * 100;
+
+                let outOfBounds = false;
+                if (sprite.velocityY > 0 && posY > 100 + marginY) outOfBounds = true;      // Moving Down -> Check Bottom
+                else if (sprite.velocityY < 0 && posY < -marginY) outOfBounds = true;      // Moving Up -> Check Top
+                else if (sprite.velocityX > 0 && posX > 100 + marginX) outOfBounds = true; // Moving Right -> Check Right
+                else if (sprite.velocityX < 0 && posX < -marginX) outOfBounds = true;      // Moving Left -> Check Left
+
+                if (outOfBounds) {
                     eventFailed = true;
                     failedSpriteId = sprite.id;
                     break;
@@ -309,7 +328,7 @@ export default function GameCanvas({ socket, onAbort, style = 'cyber', duration 
                     // But we draw at py + 30.
                     // Let's translate to (px, py).
 
-                    const centerX = px + (sprite.size || 50) / 3; // Approx center X
+                    const centerX = px + (sprite.size) / 3; // Approx center X
                     const centerY = py + 15; // Approx center Y
 
                     ctx.translate(centerX, centerY);
@@ -318,21 +337,21 @@ export default function GameCanvas({ socket, onAbort, style = 'cyber', duration 
                 }
 
                 if (style === 'steam') {
-                    const fontSize = sprite.size || 50;
+                    const fontSize = sprite.size;
                     ctx.font = `bold ${fontSize}px 'Rajdhani', sans-serif`;
                     ctx.fillStyle = "#d97706";
                     ctx.shadowColor = "#000";
                     ctx.shadowBlur = 4;
                     ctx.fillText(sprite.letter, px, py + 30);
                 } else if (style === 'cyber') {
-                    const fontSize = sprite.size || 60;
+                    const fontSize = sprite.size;
                     ctx.font = `bold ${fontSize}px 'Segoe UI', sans-serif`;
                     ctx.fillStyle = "#fff";
                     ctx.shadowColor = LETTER_COLORS[sprite.letter.charCodeAt(0) % LETTER_COLORS.length];
                     ctx.shadowBlur = 20;
                     ctx.fillText(sprite.letter, px, py + 30);
                 } else if (style === 'hi-tech') {
-                    const fontSize = sprite.size || 40;
+                    const fontSize = sprite.size;
                     ctx.font = `500 ${fontSize}px 'Rajdhani', sans-serif`;
                     ctx.fillStyle = "#0f172a";
                     ctx.fillText(sprite.letter, px, py + 30);

@@ -69,7 +69,9 @@ export abstract class BaseStrategy implements SessionStrategy {
         // Or we duplicate the generation logic? 
         // Let's call a public method on Session that does the math, but we control the flags.
         // session.generateEvent(allowedComplexity, speedOverride?)
-        return session.createSpawnEvent(this.profile.complexity);
+        const result = session.createSpawnEvent(this.profile.complexity);
+        result.phase = this.type;
+        return result;
     }
 
     abstract handleSuccess(session: GameSession): void;
@@ -449,7 +451,9 @@ export class RecoveryStrategy extends BaseStrategy {
         // "High-stress complexities disabled" -> likely just simple falling.
         // Let's disable DOUBLE and FLIP.
         const simplified = this.profile.complexity & ~(ComplexityBitmap.DOUBLE | ComplexityBitmap.FLIP);
-        return session.createSpawnEvent(simplified);
+        const result = session.createSpawnEvent(simplified);
+        result.phase = this.type;
+        return result;
     }
 
     handleSuccess(session: GameSession): void {
