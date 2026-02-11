@@ -480,3 +480,41 @@
     background: var(--neon-blue);
     box-shadow: none;
 }
+
+/* Steam Theme Overrides */
+[data-theme='steam'] .logout-btn {
+    background: #1c1917;
+    /* Solid Dark background for contrast */
+    border-color: var(--neon-cyan);
+    /* Gold/Amber border */
+    color: var(--neon-cyan);
+    /* Gold/Amber text */
+    text-shadow: 0 0 5px rgba(0, 0, 0, 0.8);
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+}
+
+[data-theme='steam'] .logout-btn:hover {
+    background: var(--neon-cyan);
+    color: var(--cyber-bg);
+    box-shadow: 0 0 15px var(--neon-cyan);
+}
+
+[data-theme='steam'] .dashboard-header {
+    border-bottom-color: #d97706;
+}
+
+[data-theme='steam'] .stat-item {
+    color: #1c1917;
+    background: #d97706 !important;
+    /* Solid Amber Force */
+    text-shadow: none;
+    padding: 0.5rem 1rem;
+    border-radius: 20px;
+    border: 1px solid var(--neon-cyan);
+    box-shadow: 0 0 15px var(--neon-cyan);
+    font-weight: bold;
+}
+
+[data-theme='steam'] .stat-item svg {
+    color: var(--cyber-bg);
+}
